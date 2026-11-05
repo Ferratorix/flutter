@@ -3,7 +3,7 @@ extends Control
 ## Простой линейный график по месяцам. Рисуется средствами CanvasItem,
 ## без сторонних библиотек. Подписи оси Y — краткие суммы (Fmt.compact_amount).
 
-const PAD_LEFT := 58.0
+const PAD_LEFT := 72.0
 const PAD_RIGHT := 8.0
 const PAD_TOP := 10.0
 const PAD_BOTTOM := 24.0

@@ -87,7 +87,7 @@ static func percent(value: float) -> String:
 static func full_days_breakdown(full_days: int, remainder_minutes: int) -> String:
 	if full_days <= 0:
 		return Loc.t("Меньше одного рабочего дня")
-	var days_text := str(full_days) + " " + Loc.plural(full_days,
+	var days_text := Money.group_digits(str(full_days)) + " " + Loc.plural(full_days,
 		["полный рабочий день", "полных рабочих дня", "полных рабочих дней"])
 	if remainder_minutes <= 0:
 		return days_text

@@ -87,6 +87,18 @@ godot --headless --path timeprice --import
 godot --headless --path timeprice --script res://tests/test_runner.gd
 ```
 
+### Сквозная проверка интерфейса
+
+Проходит onboarding и все разделы, проверяет «Назад», сохранение, перезапуск и
+восстановление повреждённого файла, сохраняет скриншоты в `user://smoke_shots/`.
+**Сбрасывает данные приложения на этом компьютере.**
+
+```bash
+godot --path timeprice --resolution 800x1720 res://tests/ui_smoke/ui_smoke.tscn
+```
+
+Проверено в Godot 4.3: 73 модульных теста и сквозная проверка — без ошибок.
+
 ## Android-сборка
 
 1. В редакторе: «Редактор → Настройки редактора → Экспорт → Android» — укажите

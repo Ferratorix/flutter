@@ -180,7 +180,7 @@ func _build_chart(sim: Dictionary) -> void:
 		var s := scenario as PurchaseScenario
 		series.append({"values": s.projection, "color": SCENARIO_COLORS.get(s.delay_months, AppTheme.ACCENT), "width": 2.5})
 	var chart := LineChart.new()
-	chart.set_data(series, {0: Loc.t("Сейчас"), 3: Loc.t("3 мес."), 6: Loc.t("6 мес."), 12: Loc.t("12 мес.")})
+	chart.set_data(series, {0: Loc.t("Сейчас"), 6: Loc.t("6 мес."), 12: Loc.t("12 мес.")})
 	box.add_child(chart)
 	var legend := HFlowContainer.new()
 	legend.add_theme_constant_override("h_separation", 14)
