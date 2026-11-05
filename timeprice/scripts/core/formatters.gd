@@ -134,3 +134,18 @@ static func date(unix_time: int) -> String:
 	var bias: int = Time.get_time_zone_from_system().get("bias", 0)
 	var d := Time.get_datetime_dict_from_unix_time(unix_time + bias * 60)
 	return "%d %s %d" % [d["day"], Loc.t(MONTHS_SHORT[clampi(int(d["month"]) - 1, 0, 11)]), d["year"]]
+
+
+## Краткая запись суммы для осей графиков: "350 тыс.", "1,2 млн", "−40 тыс.".
+static func compact_amount(minor: int) -> String:
+	var major := absf(float(minor)) / Money.MINOR_FACTOR
+	var text := ""
+	if major >= 1_000_000_000.0:
+		text = decimal(major / 1_000_000_000.0, 1) + NBSP + Loc.t("млрд")
+	elif major >= 1_000_000.0:
+		text = decimal(major / 1_000_000.0, 1) + NBSP + Loc.t("млн")
+	elif major >= 1_000.0:
+		text = decimal(major / 1_000.0, 0) + NBSP + Loc.t("тыс.")
+	else:
+		text = decimal(major, 0)
+	return ("−" + text) if minor < 0 and text != "0" else text

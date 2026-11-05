@@ -10,6 +10,7 @@ var _rate_field: InputField
 var _result_box: VBoxContainer
 var _save_button: Button
 var _wish_button: Button
+var _simulate_button: Button
 
 var _currency: String = Currency.DEFAULT_CODE
 var _base_price: int = -1
@@ -79,12 +80,32 @@ func on_enter(params: Dictionary) -> void:
 	_wish_button = UI.button("Добавить в список желаний", &"SecondaryButton", _add_to_wishlist)
 	_wish_button.icon = IconLibrary.texture("heart")
 	actions.add_child(_wish_button)
+	_simulate_button = UI.button("Смоделировать покупку", &"SecondaryButton",
+		func() -> void: NavigationManager.push("simulator", {"price_minor": _base_price}))
+	actions.add_child(_simulate_button)
 	actions.add_child(UI.button("Новый расчёт", &"SecondaryButton", _reset))
 
 	var price: int = int(params.get("price_minor", -1))
 	if price > 0:
 		_price_field.set_amount(price)
 	_recalculate()
+
+
+## Профиль (например, накопления) мог измениться на экране настроек.
+func on_resume() -> void:
+	if _price_field != null:
+		var saved := _saved
+		var wished := _wished
+		_recalculate()
+		# Пересчёт не делает уже сохранённый расчёт «несохранённым».
+		if saved and _base_price > 0:
+			_saved = true
+			_save_button.text = "Сохранено"
+			_save_button.disabled = true
+		if wished and _base_price > 0:
+			_wished = true
+			_wish_button.text = "В списке желаний"
+			_wish_button.disabled = true
 
 
 func _on_currency_selected(index: int) -> void:
@@ -146,11 +167,13 @@ func _recalculate() -> void:
 	_result_box.add_child(UI.label("Расчёт — информация для решения, а не оценка вашей покупки.", &"MutedLabel", true))
 	_save_button.disabled = false
 	_wish_button.disabled = _wished
+	_simulate_button.disabled = false
 
 
 func _show_hint(text: String) -> void:
 	_save_button.disabled = true
 	_wish_button.disabled = true
+	_simulate_button.disabled = true
 	if text.is_empty():
 		return
 	var box := UI.card(_result_box, &"Card", 10)

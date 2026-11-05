@@ -87,6 +87,10 @@ func _update_quick_result() -> void:
 	_quick_price = -1
 	if price == InputField.EMPTY:
 		_quick_result.add_child(UI.label("Введите стоимость — покажем, сколько рабочего времени она занимает.", &"CaptionLabel", true))
+		var sim := UI.button("Моделирование покупки", &"GhostButton", func() -> void: NavigationManager.push("simulator"))
+		sim.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		sim.custom_minimum_size.y = 40
+		_quick_result.add_child(sim)
 		return
 	if price == Money.INVALID:
 		_quick_field.set_error("Введите сумму цифрами, например 350 000")
@@ -105,8 +109,15 @@ func _update_quick_result() -> void:
 	row.add_child(col)
 	col.add_child(UI.label(Fmt.duration(r["total_minutes"]), &"ValueLabel", true))
 	col.add_child(UI.label(Loc.tf("%s · %s месячного дохода", [Fmt.work_days(r["days"]), Fmt.percent(r["income_percentage"])]), &"CaptionLabel", true))
-	var more := UI.button("Подробный расчёт", &"SecondaryButton", _open_calculator)
-	_quick_result.add_child(more)
+	var buttons := UI.hbox(10)
+	_quick_result.add_child(buttons)
+	var more := UI.button("Подробнее", &"SecondaryButton", _open_calculator)
+	more.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	buttons.add_child(more)
+	var simulate := UI.button("Смоделировать", &"SecondaryButton",
+		func() -> void: NavigationManager.push("simulator", {"price_minor": _quick_price}))
+	simulate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	buttons.add_child(simulate)
 
 
 func _open_calculator() -> void:

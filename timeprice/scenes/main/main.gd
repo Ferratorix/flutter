@@ -10,6 +10,8 @@ var _bottom_nav: BottomNav
 var _toast: Toast
 var _dialog: ConfirmDialog
 var _current_screen: BaseScreen
+## Живые экраны в порядке стека NavigationManager (нижний — вкладка).
+var _screens: Array[BaseScreen] = []
 var _keyboard_height := 0.0
 var _last_back_ms := -100000
 
@@ -128,29 +130,56 @@ func _on_tab_selected(route: String) -> void:
 	NavigationManager.switch_tab(route)
 
 
-func _on_route_changed(route: String, params: Dictionary, direction: int) -> void:
+func _on_route_changed(route: String, params: Dictionary, direction: int, action: int) -> void:
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused != null:
+		focused.release_focus()
+	_dialog.close()
+
+	if action == NavigationManager.ACTION_POP and _screens.size() > 1:
+		var top: BaseScreen = _screens.pop_back()
+		top.queue_free()
+		_current_screen = _screens.back()
+		_current_screen.visible = true
+		_current_screen.on_resume()
+		_finish_transition(route, direction)
+		return
+
+	var screen := _instantiate(route)
+	if screen == null:
+		return
+	if action == NavigationManager.ACTION_PUSH and _current_screen != null:
+		_current_screen.visible = false
+	else:
+		for old in _screens:
+			old.queue_free()
+		_screens.clear()
+	_screens.append(screen)
+	_current_screen = screen
+	_screen_host.add_child(screen)
+	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen.on_enter(params)
+	_finish_transition(route, direction)
+
+
+func _instantiate(route: String) -> BaseScreen:
 	var path := NavigationManager.scene_path(route)
 	var packed := load(path) as PackedScene
 	if packed == null:
 		_toast.show_message(Loc.t("Не удалось открыть раздел"))
 		push_error("Сцена не найдена: %s" % path)
-		return
+		return null
 	var screen := packed.instantiate() as BaseScreen
 	if screen == null:
 		push_error("Сцена %s должна наследовать BaseScreen" % path)
-		return
-	var focused := get_viewport().gui_get_focus_owner()
-	if focused != null:
-		focused.release_focus()
-	if _current_screen != null:
-		_current_screen.queue_free()
-	_current_screen = screen
-	_screen_host.add_child(screen)
-	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	screen.on_enter(params)
-	_bottom_nav.set_selected(route)
+	return screen
+
+
+func _finish_transition(route: String, direction: int) -> void:
+	if NavigationManager.is_tab_route(route):
+		_bottom_nav.set_selected(route)
 	_update_insets()
-	_animate_in(screen, direction)
+	_animate_in(_current_screen, direction)
 
 
 func _animate_in(screen: Control, direction: int) -> void:

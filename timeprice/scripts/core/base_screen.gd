@@ -12,6 +12,12 @@ func on_enter(_params: Dictionary) -> void:
 	pass
 
 
+## Экран снова стал верхним после закрытия экрана над ним.
+## Переопределите, чтобы обновить данные, которые могли измениться.
+func on_resume() -> void:
+	pass
+
+
 ## true — событие обработано экраном.
 func handle_back() -> bool:
 	return false

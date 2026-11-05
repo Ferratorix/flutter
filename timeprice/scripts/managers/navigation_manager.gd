@@ -3,14 +3,24 @@ extends Node
 ##
 ## Экраны не знают друг о друге — они вызывают методы этого менеджера,
 ## а Main реагирует на сигнал route_changed и показывает нужную сцену.
+##
+## action:
+##   ACTION_REPLACE — стек очищен, экран создаётся заново (вкладки, reset_to);
+##   ACTION_PUSH    — новый экран поверх текущего, текущий сохраняется;
+##   ACTION_POP     — верхний экран закрыт, показывается сохранённый предыдущий.
+## direction (−1, 0, 1) используется только для анимации.
 
-signal route_changed(route: String, params: Dictionary, direction: int)
+signal route_changed(route: String, params: Dictionary, direction: int, action: int)
 signal toast_requested(message: String)
 signal confirm_requested(options: Dictionary)
 
 const DIRECTION_NONE := 0
 const DIRECTION_FORWARD := 1
 const DIRECTION_BACK := -1
+
+const ACTION_REPLACE := 0
+const ACTION_PUSH := 1
+const ACTION_POP := 2
 
 const HOME_ROUTE := "home"
 
@@ -25,6 +35,7 @@ const ROUTES := {
 	"wishlist": "res://scenes/wishlist/wishlist_screen.tscn",
 	"wishlist_edit": "res://scenes/wishlist/wishlist_edit_screen.tscn",
 	"settings": "res://scenes/settings/settings_screen.tscn",
+	"simulator": "res://scenes/simulator/simulator_screen.tscn",
 }
 
 ## Вкладки нижней панели в порядке отображения.
@@ -62,7 +73,7 @@ func reset_to(route: String, params: Dictionary = {}) -> void:
 		push_error("Неизвестный маршрут: %s" % route)
 		return
 	_stack = [{"route": route, "params": params}]
-	route_changed.emit(route, params, DIRECTION_NONE)
+	route_changed.emit(route, params, DIRECTION_NONE, ACTION_REPLACE)
 
 
 func switch_tab(route: String, params: Dictionary = {}) -> void:
@@ -76,7 +87,7 @@ func switch_tab(route: String, params: Dictionary = {}) -> void:
 	if is_tab_route(previous) and is_root():
 		direction = signi(TAB_ROUTES.find(route) - TAB_ROUTES.find(previous))
 	_stack = [{"route": route, "params": params}]
-	route_changed.emit(route, params, direction)
+	route_changed.emit(route, params, direction, ACTION_REPLACE)
 
 
 func push(route: String, params: Dictionary = {}) -> void:
@@ -84,7 +95,7 @@ func push(route: String, params: Dictionary = {}) -> void:
 		push_error("Неизвестный маршрут: %s" % route)
 		return
 	_stack.append({"route": route, "params": params})
-	route_changed.emit(route, params, DIRECTION_FORWARD)
+	route_changed.emit(route, params, DIRECTION_FORWARD, ACTION_PUSH)
 
 
 ## Возврат назад. false — возвращаться некуда (корень главной вкладки).
@@ -92,12 +103,12 @@ func go_back() -> bool:
 	if _stack.size() > 1:
 		_stack.pop_back()
 		var top: Dictionary = _stack.back()
-		route_changed.emit(top["route"], top["params"], DIRECTION_BACK)
+		route_changed.emit(top["route"], top["params"], DIRECTION_BACK, ACTION_POP)
 		return true
 	var route := current_route()
 	if is_tab_route(route) and route != HOME_ROUTE:
 		_stack = [{"route": HOME_ROUTE, "params": {}}]
-		route_changed.emit(HOME_ROUTE, {}, DIRECTION_BACK)
+		route_changed.emit(HOME_ROUTE, {}, DIRECTION_BACK, ACTION_REPLACE)
 		return true
 	return false
 

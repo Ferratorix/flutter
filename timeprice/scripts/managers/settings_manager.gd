@@ -11,6 +11,9 @@ var locale: String = Loc.DEFAULT_LOCALE
 var reduce_motion: bool = false
 ## "USD>KZT" -> курс × 10^FinancialCalculator.RATE_DIGITS
 var exchange_rates: Dictionary = {}
+## Последние значения в моделировании покупки (-1 — не указано).
+var simulator_expenses_minor: int = -1
+var simulator_monthly_savings_minor: int = -1
 
 
 func _ready() -> void:
@@ -41,6 +44,15 @@ func load_settings() -> void:
 			if typeof(key) == TYPE_STRING and typeof(v) == TYPE_INT \
 					and v > 0 and v <= FinancialCalculator.MAX_RATE:
 				exchange_rates[key] = v
+	simulator_expenses_minor = _read_amount(cfg, "simulator", "expenses_minor")
+	simulator_monthly_savings_minor = _read_amount(cfg, "simulator", "monthly_savings_minor")
+
+
+func _read_amount(cfg: ConfigFile, section: String, key: String) -> int:
+	var v: Variant = cfg.get_value(section, key, -1)
+	if typeof(v) == TYPE_INT and v >= -1 and v <= Money.MAX_MINOR:
+		return v
+	return -1
 
 
 func save_settings() -> bool:
@@ -48,6 +60,8 @@ func save_settings() -> bool:
 	cfg.set_value("ui", "locale", locale)
 	cfg.set_value("ui", "reduce_motion", reduce_motion)
 	cfg.set_value("finance", "exchange_rates", exchange_rates)
+	cfg.set_value("simulator", "expenses_minor", simulator_expenses_minor)
+	cfg.set_value("simulator", "monthly_savings_minor", simulator_monthly_savings_minor)
 	var err := cfg.save(SETTINGS_PATH)
 	if err != OK:
 		push_error("Не удалось сохранить настройки: %s" % error_string(err))
@@ -82,6 +96,16 @@ func set_rate(from_code: String, to_code: String, rate_scaled: int) -> void:
 	save_settings()
 
 
+func set_simulator_inputs(expenses_minor: int, monthly_savings_minor: int) -> void:
+	var e := clampi(expenses_minor, -1, Money.MAX_MINOR)
+	var m := clampi(monthly_savings_minor, -1, Money.MAX_MINOR)
+	if e == simulator_expenses_minor and m == simulator_monthly_savings_minor:
+		return
+	simulator_expenses_minor = e
+	simulator_monthly_savings_minor = m
+	save_settings()
+
+
 func reset() -> void:
 	_set_defaults()
 	if FileAccess.file_exists(SETTINGS_PATH):
@@ -94,6 +118,8 @@ func _set_defaults() -> void:
 	locale = Loc.DEFAULT_LOCALE
 	reduce_motion = false
 	exchange_rates = {}
+	simulator_expenses_minor = -1
+	simulator_monthly_savings_minor = -1
 
 
 func _rate_key(from_code: String, to_code: String) -> String:
