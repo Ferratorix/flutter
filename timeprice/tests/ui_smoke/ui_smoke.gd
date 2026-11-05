@@ -21,6 +21,45 @@ func shot(shot_name: String) -> void:
 	await wait(30)
 	get_viewport().get_texture().get_image().save_png(OUT + shot_name + ".png")
 
+func drag_at(from: Vector2, distance: float) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	ev.position = from
+	ev.global_position = from
+	Input.parse_input_event(ev)
+	await get_tree().process_frame
+	var steps := 15
+	for i in steps:
+		var m := InputEventMouseMotion.new()
+		m.position = from - Vector2(0, distance * (i + 1) / steps)
+		m.global_position = m.position
+		m.relative = Vector2(0, -distance / steps)
+		m.button_mask = MOUSE_BUTTON_MASK_LEFT
+		Input.parse_input_event(m)
+		await get_tree().process_frame
+	var up := ev.duplicate() as InputEventMouseButton
+	up.pressed = false
+	up.position = from - Vector2(0, distance)
+	up.global_position = up.position
+	Input.parse_input_event(up)
+	await wait(20)
+
+
+func tap_at(at: Vector2) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	ev.position = at
+	ev.global_position = at
+	Input.parse_input_event(ev)
+	await get_tree().process_frame
+	var up := ev.duplicate() as InputEventMouseButton
+	up.pressed = false
+	Input.parse_input_event(up)
+	await wait(5)
+
+
 func screen() -> BaseScreen:
 	return main._current_screen
 
@@ -68,6 +107,28 @@ func _ready() -> void:
 	var calc = screen()
 	calc._title_field.set_text("Смартфон")
 	await shot("08_calculator")
+	# Регрессия: свайп, начатый на поле ввода и на кнопке, прокручивает экран.
+	var field_pos: Vector2 = calc._price_field.line_edit.get_global_rect().get_center()
+	await drag_at(field_pos, 300.0)
+	check(calc.scroll.scroll_vertical > 100, "свайп по полю ввода прокручивает экран (%d)" % calc.scroll.scroll_vertical)
+	calc.scroll.scroll_vertical = 0
+	await wait(5)
+	var button_pos: Vector2 = calc._currency_option.get_global_rect().get_center()
+	await drag_at(button_pos, 200.0)
+	check(calc.scroll.scroll_vertical > 100, "свайп по кнопке прокручивает экран (%d)" % calc.scroll.scroll_vertical)
+	check(not calc._currency_option.get_popup().visible, "свайп не открывает список валют")
+	calc.scroll.scroll_vertical = 0
+	await wait(5)
+	await tap_at(calc._currency_option.get_global_rect().get_center())
+	check(calc._currency_option.get_popup().visible, "нажатие открывает список валют")
+	calc._currency_option.get_popup().hide()
+	await wait(5)
+	check(DataManager.history.is_empty(), "свайп по кнопке не нажимает её")
+	calc.scroll.scroll_vertical = 0
+	await wait(5)
+	await tap_at(calc._title_field.line_edit.get_global_rect().get_center())
+	check(calc._title_field.line_edit.has_focus(), "нажатие на поле ставит фокус")
+	calc._title_field.line_edit.release_focus()
 	calc._save()
 	calc._add_to_wishlist()
 	await wait()
@@ -149,6 +210,8 @@ func _ready() -> void:
 	dep._inflation.set_text("8")
 	dep._recalculate()
 	await shot("22_deposit")
+	await drag_at(Vector2(200, 650), 400.0)
+	check(dep.scroll.scroll_vertical > 150, "свайп прокручивает депозит")
 	dep.scroll.scroll_vertical = 1100
 	await shot("23_deposit_results")
 	main._handle_back()
@@ -160,6 +223,9 @@ func _ready() -> void:
 	loan._term.set_text("24")
 	loan._fee.set_text("40 000")
 	loan._recalculate()
+	await wait()
+	await drag_at(Vector2(200, 650), 400.0)
+	check(loan.scroll.scroll_vertical > 150, "свайп прокручивает кредит")
 	loan.scroll.scroll_vertical = 700
 	await shot("24_loan")
 	loan.scroll.scroll_vertical = 1500
@@ -172,6 +238,9 @@ func _ready() -> void:
 	inst._term.set_text("12")
 	inst._discount.set_text("7")
 	inst._recalculate()
+	await wait()
+	await drag_at(Vector2(200, 650), 400.0)
+	check(inst.scroll.scroll_vertical > 150, "свайп прокручивает рассрочку")
 	inst.scroll.scroll_vertical = 600
 	await shot("26_installment")
 	main._handle_back()

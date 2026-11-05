@@ -22,6 +22,11 @@ var _suffix: Label
 var _helper: Label
 var _error: Label
 var _has_error := false
+var _press_position := Vector2.ZERO
+var _press_active := false
+
+## Сдвиг пальца, после которого касание считается прокруткой, а не нажатием.
+const TAP_SLOP := 12.0
 
 
 func _init(p_mode: Mode = Mode.TEXT, title: String = "", placeholder: String = "", suffix: String = "") -> void:
@@ -35,6 +40,9 @@ func _init(p_mode: Mode = Mode.TEXT, title: String = "", placeholder: String = "
 
 	_panel = PanelContainer.new()
 	_panel.theme_type_variation = &"InputPanel"
+	_panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	_panel.mouse_default_cursor_shape = Control.CURSOR_IBEAM
+	_panel.gui_input.connect(_on_panel_input)
 	_panel.custom_minimum_size.y = AppTheme.TOUCH_TARGET
 	add_child(_panel)
 	var row := HBoxContainer.new()
@@ -47,6 +55,9 @@ func _init(p_mode: Mode = Mode.TEXT, title: String = "", placeholder: String = "
 	line_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line_edit.max_length = 80 if mode == Mode.TEXT else 24
 	line_edit.context_menu_enabled = false
+	# Пока поле не активно, касание получает панель: короткое нажатие ставит фокус,
+	# а свайп прокручивает экран (LineEdit всегда перехватывает касание).
+	line_edit.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if mode == Mode.AMOUNT:
 		line_edit.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER_DECIMAL
 	row.add_child(line_edit)
@@ -66,7 +77,7 @@ func _init(p_mode: Mode = Mode.TEXT, title: String = "", placeholder: String = "
 
 	line_edit.text_changed.connect(_on_text_changed)
 	line_edit.text_submitted.connect(_on_text_submitted)
-	line_edit.focus_entered.connect(_update_panel_style)
+	line_edit.focus_entered.connect(_on_focus_entered)
 	line_edit.focus_exited.connect(_on_focus_exited)
 
 
@@ -140,7 +151,30 @@ func _on_text_submitted(_text: String) -> void:
 	submitted.emit()
 
 
+func _on_panel_input(event: InputEvent) -> void:
+	if line_edit.has_focus():
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_press_position = event.global_position
+			_press_active = true
+		elif _press_active:
+			_press_active = false
+			if event.global_position.distance_to(_press_position) <= TAP_SLOP:
+				line_edit.grab_focus()
+				line_edit.caret_column = line_edit.text.length()
+	elif event is InputEventMouseMotion and _press_active:
+		if event.global_position.distance_to(_press_position) > TAP_SLOP:
+			_press_active = false
+
+
+func _on_focus_entered() -> void:
+	line_edit.mouse_filter = Control.MOUSE_FILTER_STOP
+	_update_panel_style()
+
+
 func _on_focus_exited() -> void:
+	line_edit.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_update_panel_style()
 	if mode == Mode.AMOUNT:
 		var value := get_amount()

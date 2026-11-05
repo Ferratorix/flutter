@@ -26,6 +26,7 @@ func _ready() -> void:
 	DataManager.save_failed.connect(_on_save_failed)
 	get_viewport().size_changed.connect(_update_insets)
 	get_viewport().gui_focus_changed.connect(_on_focus_changed)
+	get_tree().node_added.connect(_on_node_added)
 	_update_insets()
 
 	if DataManager.has_ready_profile():
@@ -240,6 +241,31 @@ func _ensure_focus_visible() -> void:
 		node = node.get_parent()
 	if node is ScrollContainer:
 		(node as ScrollContainer).ensure_control_visible(focused)
+
+
+## Сенсорная прокрутка: элементы с MOUSE_FILTER_STOP (кнопки, карточки, разделители)
+## не пропускают касание к ScrollContainer, и свайп, начатый на них, не прокручивает
+## экран. Внутри прокручиваемых областей переводим их в PASS: нажатие по-прежнему
+## срабатывает, а свайп прокручивает экран (ScrollContainer отменяет нажатие сам).
+## Поля ввода обрабатываются отдельно в InputField.
+func _on_node_added(node: Node) -> void:
+	if not (node is Control) or node is ScrollBar or node is LineEdit or node is ScrollContainer:
+		return
+	var control := node as Control
+	# Списки выбора открываются при касании — тогда свайп по ним открывает список.
+	# Переводим на срабатывание при отпускании, как у обычных кнопок.
+	if node is OptionButton or node is MenuButton:
+		(node as BaseButton).action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+	if control.mouse_filter != Control.MOUSE_FILTER_STOP:
+		return
+	var parent := node.get_parent()
+	while parent != null:
+		if parent is ScrollContainer:
+			control.mouse_filter = Control.MOUSE_FILTER_PASS
+			return
+		if parent == self:
+			return
+		parent = parent.get_parent()
 
 
 func _on_save_failed() -> void:
