@@ -159,7 +159,7 @@ func _build_recent(_profile: UserProfile) -> void:
 		UI.empty_state(content, "history", "Пока нет сохранённых расчётов",
 			"Рассчитайте покупку в калькуляторе и сохраните результат — он появится здесь.")
 		return
-	var all := UI.button("Все", &"GhostButton", func() -> void: NavigationManager.switch_tab("history"))
+	var all := UI.button("Все", &"GhostButton", func() -> void: NavigationManager.push("history"))
 	all.custom_minimum_size = Vector2(0, 40)
 	header.add_child(all)
 	var box := UI.card(content, &"Card", 4)

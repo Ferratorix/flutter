@@ -36,10 +36,14 @@ const ROUTES := {
 	"wishlist_edit": "res://scenes/wishlist/wishlist_edit_screen.tscn",
 	"settings": "res://scenes/settings/settings_screen.tscn",
 	"simulator": "res://scenes/simulator/simulator_screen.tscn",
+	"tools": "res://scenes/tools/tools_screen.tscn",
+	"deposit": "res://scenes/tools/deposit_screen.tscn",
+	"loan": "res://scenes/tools/loan_screen.tscn",
+	"installment": "res://scenes/tools/installment_screen.tscn",
 }
 
 ## Вкладки нижней панели в порядке отображения.
-const TAB_ROUTES := ["home", "calculator", "goals", "wishlist", "history"]
+const TAB_ROUTES := ["home", "calculator", "goals", "wishlist", "tools"]
 
 var _stack: Array[Dictionary] = []
 

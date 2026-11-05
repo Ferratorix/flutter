@@ -14,6 +14,8 @@ var exchange_rates: Dictionary = {}
 ## Последние значения в моделировании покупки (-1 — не указано).
 var simulator_expenses_minor: int = -1
 var simulator_monthly_savings_minor: int = -1
+## Последние значения в калькуляторах инструментов: {"deposit": {"initial": int, ...}}.
+var tool_inputs: Dictionary = {}
 
 
 func _ready() -> void:
@@ -46,6 +48,17 @@ func load_settings() -> void:
 				exchange_rates[key] = v
 	simulator_expenses_minor = _read_amount(cfg, "simulator", "expenses_minor")
 	simulator_monthly_savings_minor = _read_amount(cfg, "simulator", "monthly_savings_minor")
+	if cfg.has_section("tools"):
+		for tool in cfg.get_section_keys("tools"):
+			var values: Variant = cfg.get_value("tools", tool, {})
+			if typeof(values) != TYPE_DICTIONARY:
+				continue
+			var clean := {}
+			for key in values:
+				var v: Variant = values[key]
+				if typeof(key) == TYPE_STRING and (typeof(v) == TYPE_INT or typeof(v) == TYPE_STRING):
+					clean[key] = v
+			tool_inputs[tool] = clean
 
 
 func _read_amount(cfg: ConfigFile, section: String, key: String) -> int:
@@ -62,6 +75,8 @@ func save_settings() -> bool:
 	cfg.set_value("finance", "exchange_rates", exchange_rates)
 	cfg.set_value("simulator", "expenses_minor", simulator_expenses_minor)
 	cfg.set_value("simulator", "monthly_savings_minor", simulator_monthly_savings_minor)
+	for tool in tool_inputs:
+		cfg.set_value("tools", tool, tool_inputs[tool])
 	var err := cfg.save(SETTINGS_PATH)
 	if err != OK:
 		push_error("Не удалось сохранить настройки: %s" % error_string(err))
@@ -106,6 +121,18 @@ func set_simulator_inputs(expenses_minor: int, monthly_savings_minor: int) -> vo
 	save_settings()
 
 
+func get_tool_inputs(tool: String) -> Dictionary:
+	var v: Variant = tool_inputs.get(tool, {})
+	return v if typeof(v) == TYPE_DICTIONARY else {}
+
+
+func set_tool_inputs(tool: String, values: Dictionary) -> void:
+	if get_tool_inputs(tool) == values:
+		return
+	tool_inputs[tool] = values.duplicate()
+	save_settings()
+
+
 func reset() -> void:
 	_set_defaults()
 	if FileAccess.file_exists(SETTINGS_PATH):
@@ -120,6 +147,7 @@ func _set_defaults() -> void:
 	exchange_rates = {}
 	simulator_expenses_minor = -1
 	simulator_monthly_savings_minor = -1
+	tool_inputs = {}
 
 
 func _rate_key(from_code: String, to_code: String) -> String:

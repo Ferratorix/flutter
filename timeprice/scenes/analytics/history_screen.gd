@@ -14,7 +14,7 @@ func _build() -> void:
 
 func _build_content() -> void:
 	UI.clear_children(content)
-	content.add_child(UI.top_bar("История расчётов"))
+	content.add_child(UI.top_bar("История расчётов", NavigationManager.go_back))
 	var items := DataManager.history
 	if items.is_empty():
 		UI.empty_state(content, "history", "История пока пуста",

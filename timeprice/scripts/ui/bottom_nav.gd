@@ -9,7 +9,7 @@ const ITEMS := [
 	{"route": "calculator", "label": "Расчёт", "icon": "calculator"},
 	{"route": "goals", "label": "Цели", "icon": "target"},
 	{"route": "wishlist", "label": "Желания", "icon": "heart"},
-	{"route": "history", "label": "История", "icon": "history"},
+	{"route": "tools", "label": "Сервисы", "icon": "grid"},
 ]
 
 var _items: Dictionary = {}

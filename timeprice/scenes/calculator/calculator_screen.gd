@@ -11,6 +11,7 @@ var _result_box: VBoxContainer
 var _save_button: Button
 var _wish_button: Button
 var _simulate_button: Button
+var _finance_row: HBoxContainer
 
 var _currency: String = Currency.DEFAULT_CODE
 var _base_price: int = -1
@@ -83,6 +84,13 @@ func on_enter(params: Dictionary) -> void:
 	_simulate_button = UI.button("Смоделировать покупку", &"SecondaryButton",
 		func() -> void: NavigationManager.push("simulator", {"price_minor": _base_price}))
 	actions.add_child(_simulate_button)
+	_finance_row = UI.hbox(10)
+	actions.add_child(_finance_row)
+	for item in [["В кредит", "loan"], ["В рассрочку", "installment"]]:
+		var route: String = item[1]
+		var b := UI.button(item[0], &"SecondaryButton", func() -> void: NavigationManager.push(route, {"price_minor": _base_price}))
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_finance_row.add_child(b)
 	actions.add_child(UI.button("Новый расчёт", &"SecondaryButton", _reset))
 
 	var price: int = int(params.get("price_minor", -1))
@@ -168,12 +176,14 @@ func _recalculate() -> void:
 	_save_button.disabled = false
 	_wish_button.disabled = _wished
 	_simulate_button.disabled = false
+	_set_finance_enabled(true)
 
 
 func _show_hint(text: String) -> void:
 	_save_button.disabled = true
 	_wish_button.disabled = true
 	_simulate_button.disabled = true
+	_set_finance_enabled(false)
 	if text.is_empty():
 		return
 	var box := UI.card(_result_box, &"Card", 10)
@@ -181,6 +191,13 @@ func _show_hint(text: String) -> void:
 	box.add_child(row)
 	row.add_child(UI.icon_badge("info", 36.0))
 	row.add_child(UI.label(text, &"CaptionLabel", true))
+
+
+func _set_finance_enabled(enabled: bool) -> void:
+	if _finance_row == null:
+		return
+	for b in _finance_row.get_children():
+		(b as Button).disabled = not enabled
 
 
 func _mark_unsaved() -> void:
