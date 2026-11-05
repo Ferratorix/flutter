@@ -42,6 +42,17 @@ func build_scroll_layout(parent: Control = null, separation: int = 16) -> VBoxCo
 	return content
 
 
+## Перестраивает содержимое, сохраняя позицию прокрутки.
+func rebuild_keep_scroll(build: Callable) -> void:
+	var position_before := scroll.scroll_vertical if scroll != null else 0
+	build.call()
+	if scroll == null or position_before <= 0:
+		return
+	await get_tree().process_frame
+	if is_instance_valid(scroll):
+		scroll.scroll_vertical = position_before
+
+
 ## Сообщение о необходимости настроить профиль (если данные повреждены или сброшены).
 func add_profile_required_card(parent: Control) -> void:
 	var box := UI.card(parent, &"Card", 12)

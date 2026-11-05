@@ -9,11 +9,13 @@ var _rate_box: VBoxContainer
 var _rate_field: InputField
 var _result_box: VBoxContainer
 var _save_button: Button
+var _wish_button: Button
 
 var _currency: String = Currency.DEFAULT_CODE
 var _base_price: int = -1
 var _rate: int = 0
 var _saved := false
+var _wished := false
 
 
 func _ready() -> void:
@@ -74,6 +76,9 @@ func on_enter(params: Dictionary) -> void:
 	content.add_child(actions)
 	_save_button = UI.button("Сохранить в историю", &"PrimaryButton", _save)
 	actions.add_child(_save_button)
+	_wish_button = UI.button("Добавить в список желаний", &"SecondaryButton", _add_to_wishlist)
+	_wish_button.icon = IconLibrary.texture("heart")
+	actions.add_child(_wish_button)
 	actions.add_child(UI.button("Новый расчёт", &"SecondaryButton", _reset))
 
 	var price: int = int(params.get("price_minor", -1))
@@ -140,10 +145,12 @@ func _recalculate() -> void:
 	PurchaseResultView.build(_result_box, r, profile, note)
 	_result_box.add_child(UI.label("Расчёт — информация для решения, а не оценка вашей покупки.", &"MutedLabel", true))
 	_save_button.disabled = false
+	_wish_button.disabled = _wished
 
 
 func _show_hint(text: String) -> void:
 	_save_button.disabled = true
+	_wish_button.disabled = true
 	if text.is_empty():
 		return
 	var box := UI.card(_result_box, &"Card", 10)
@@ -154,6 +161,10 @@ func _show_hint(text: String) -> void:
 
 
 func _mark_unsaved() -> void:
+	if _wished and _wish_button != null:
+		_wished = false
+		_wish_button.text = "Добавить в список желаний"
+		_wish_button.disabled = _base_price <= 0
 	if _saved and _save_button != null:
 		_saved = false
 		_save_button.text = "Сохранить в историю"
@@ -175,11 +186,34 @@ func _save() -> void:
 		NavigationManager.show_toast(Loc.t("Расчёт сохранён в историю"))
 
 
+func _add_to_wishlist() -> void:
+	if _base_price <= 0 or _wished:
+		return
+	var profile := DataManager.profile
+	var title := _title_field.get_text()
+	if title.is_empty():
+		title = Loc.t("Покупка без названия")
+	var item := WishlistItem.create(title, _base_price, profile.currency)
+	if _currency != profile.currency:
+		item.original_price_minor = _price_field.get_amount()
+		item.original_currency = _currency
+		SettingsManager.set_rate(_currency, profile.currency, _rate)
+	if DataManager.add_wishlist_item(item):
+		_wished = true
+		_wish_button.text = "В списке желаний"
+		_wish_button.disabled = true
+		NavigationManager.show_toast(Loc.t("Добавлено в список желаний"))
+	elif not DataManager.can_add_wishlist_item():
+		NavigationManager.show_toast(Loc.t("Список желаний заполнен"))
+
+
 func _reset() -> void:
 	_title_field.set_text("")
 	_title_field.clear_error()
 	_price_field.set_text("")
 	_price_field.clear_error()
 	_saved = false
+	_wished = false
 	_save_button.text = "Сохранить в историю"
+	_wish_button.text = "Добавить в список желаний"
 	_recalculate()

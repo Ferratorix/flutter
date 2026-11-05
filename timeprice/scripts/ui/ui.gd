@@ -142,6 +142,72 @@ static func top_bar(title: String, on_back: Variant = null) -> HBoxContainer:
 	return bar
 
 
+## Нажимаемая карточка. Возвращает VBoxContainer для содержимого.
+## После заполнения вызовите UI.pass_through(box), чтобы нажатия доходили до карточки.
+static func tap_card(parent: Control, on_pressed: Callable, separation: int = 10) -> VBoxContainer:
+	var button := Button.new()
+	button.theme_type_variation = &"CardButton"
+	button.focus_mode = Control.FOCUS_NONE
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	button.pressed.connect(on_pressed)
+	parent.add_child(button)
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		margin.add_theme_constant_override(side, 18)
+	button.add_child(margin)
+	var box := vbox(separation)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(box)
+	var sync := func() -> void:
+		button.custom_minimum_size.y = margin.get_combined_minimum_size().y
+	margin.minimum_size_changed.connect(sync)
+	margin.resized.connect(sync)
+	return box
+
+
+## Карточка-кнопка, внутри которой находится box из tap_card.
+static func tap_card_button(box: Control) -> Button:
+	var node: Node = box
+	while node != null and not (node is Button):
+		node = node.get_parent()
+	return node as Button
+
+
+## Пропускает нажатия сквозь вложенные элементы (кроме кнопок).
+static func pass_through(node: Node) -> void:
+	for child in node.get_children():
+		if child is Control and not (child is BaseButton):
+			(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+			pass_through(child)
+
+
+## Строка-чип (категория, приоритет) — только для отображения.
+static func tag(text: String, color: Color = AppTheme.TEXT_SECONDARY) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var sb := AppTheme.stylebox(Color(color, 0.12), 100, Color(0, 0, 0, 0), 0, 10, 3)
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var l := label(text, &"MutedLabel")
+	l.add_theme_color_override("font_color", color)
+	l.add_theme_font_size_override("font_size", AppTheme.FONT_SMALL)
+	panel.add_child(l)
+	return panel
+
+
+static func progress_bar(value: float, max_value: float = 100.0, height: float = 8.0) -> ProgressBar:
+	var bar := ProgressBar.new()
+	bar.min_value = 0.0
+	bar.max_value = maxf(max_value, 0.0001)
+	bar.value = clampf(value, 0.0, bar.max_value)
+	bar.show_percentage = false
+	bar.custom_minimum_size.y = height
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return bar
+
+
 static func clear_children(node: Node) -> void:
 	for child in node.get_children():
 		node.remove_child(child)

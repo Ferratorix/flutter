@@ -19,11 +19,16 @@ const ROUTES := {
 	"home": "res://scenes/home/home_screen.tscn",
 	"calculator": "res://scenes/calculator/calculator_screen.tscn",
 	"history": "res://scenes/analytics/history_screen.tscn",
+	"goals": "res://scenes/goals/goals_screen.tscn",
+	"goal_detail": "res://scenes/goals/goal_detail_screen.tscn",
+	"goal_edit": "res://scenes/goals/goal_edit_screen.tscn",
+	"wishlist": "res://scenes/wishlist/wishlist_screen.tscn",
+	"wishlist_edit": "res://scenes/wishlist/wishlist_edit_screen.tscn",
 	"settings": "res://scenes/settings/settings_screen.tscn",
 }
 
 ## Вкладки нижней панели в порядке отображения.
-const TAB_ROUTES := ["home", "calculator", "history"]
+const TAB_ROUTES := ["home", "calculator", "goals", "wishlist", "history"]
 
 var _stack: Array[Dictionary] = []
 

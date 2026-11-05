@@ -9,6 +9,10 @@ func _ready() -> void:
 
 
 func _build() -> void:
+	rebuild_keep_scroll(_build_content)
+
+
+func _build_content() -> void:
 	UI.clear_children(content)
 	content.add_child(UI.top_bar("История расчётов"))
 	var items := DataManager.history

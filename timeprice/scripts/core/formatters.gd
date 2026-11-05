@@ -5,6 +5,9 @@ extends RefCounted
 
 const NBSP := " "
 
+const MONTHS_NOMINATIVE := ["январь", "февраль", "март", "апрель", "май", "июнь",
+	"июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"]
+
 const MONTHS_SHORT := ["янв.", "февр.", "марта", "апр.", "мая", "июня",
 	"июля", "авг.", "сент.", "окт.", "нояб.", "дек."]
 
@@ -97,3 +100,37 @@ static func date_time(unix_time: int) -> String:
 	var d := Time.get_datetime_dict_from_unix_time(unix_time + bias * 60)
 	var month_index: int = clampi(int(d["month"]) - 1, 0, 11)
 	return "%d %s %d, %02d:%02d" % [d["day"], Loc.t(MONTHS_SHORT[month_index]), d["year"], d["hour"], d["minute"]]
+
+
+## Срок в месяцах: "1 год 3 месяца", "5 месяцев".
+static func months_duration(months: int) -> String:
+	if months <= 0:
+		return Loc.t("меньше месяца")
+	var years: int = months / 12
+	var rest: int = months % 12
+	var parts := PackedStringArray()
+	if years > 0:
+		parts.append(str(years) + " " + Loc.plural(years, ["год", "года", "лет"]))
+	if rest > 0:
+		parts.append(str(rest) + " " + Loc.plural(rest, ["месяц", "месяца", "месяцев"]))
+	return " ".join(parts)
+
+
+## "март 2027"
+static func month_year(year: int, month: int) -> String:
+	return "%s %d" % [Loc.t(MONTHS_NOMINATIVE[clampi(month - 1, 0, 11)]), year]
+
+
+## Месяц и год через months месяцев от текущей даты устройства.
+static func month_year_from_now(months: int) -> String:
+	var bias: int = Time.get_time_zone_from_system().get("bias", 0)
+	var d := Time.get_datetime_dict_from_unix_time(DataUtil.now() + bias * 60)
+	var ym := FinancialCalculator.add_months(int(d["year"]), int(d["month"]), months)
+	return month_year(ym.x, ym.y)
+
+
+## Короткая дата: "5 нояб. 2026".
+static func date(unix_time: int) -> String:
+	var bias: int = Time.get_time_zone_from_system().get("bias", 0)
+	var d := Time.get_datetime_dict_from_unix_time(unix_time + bias * 60)
+	return "%d %s %d" % [d["day"], Loc.t(MONTHS_SHORT[clampi(int(d["month"]) - 1, 0, 11)]), d["year"]]

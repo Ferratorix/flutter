@@ -6,7 +6,9 @@ signal tab_selected(route: String)
 
 const ITEMS := [
 	{"route": "home", "label": "Главная", "icon": "home"},
-	{"route": "calculator", "label": "Калькулятор", "icon": "calculator"},
+	{"route": "calculator", "label": "Расчёт", "icon": "calculator"},
+	{"route": "goals", "label": "Цели", "icon": "target"},
+	{"route": "wishlist", "label": "Желания", "icon": "heart"},
 	{"route": "history", "label": "История", "icon": "history"},
 ]
 
@@ -17,7 +19,7 @@ func _init() -> void:
 	theme_type_variation = &"NavPanel"
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 4)
+	row.add_theme_constant_override("separation", 2)
 	add_child(row)
 	for item in ITEMS:
 		var route: String = item["route"]

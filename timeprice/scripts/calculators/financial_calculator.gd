@@ -24,6 +24,9 @@ const RATE_DIGITS := 4
 ## Максимальный курс: 1 000 000 единиц за 1 единицу валюты.
 const MAX_RATE := 1_000_000 * 10_000
 
+## Предел прогноза срока цели — 100 лет.
+const MAX_GOAL_MONTHS := 1200
+
 ## Коды ошибок calculate().
 const ERROR_NONE := ""
 const ERROR_INVALID_PROFILE := "invalid_profile"
@@ -169,3 +172,38 @@ static func calculate(price_minor: int, monthly_income_minor: int, working_days:
 		result["savings_percentage"] = savings_percentage(price_minor, savings_minor)
 		result["savings_left_minor"] = savings_minor - price_minor
 	return result
+
+
+# --- Финансовые цели ---------------------------------------------------------
+
+## Процент выполнения цели, от 0 до 100.
+static func goal_progress(saved_minor: int, target_minor: int) -> float:
+	if target_minor <= 0 or saved_minor <= 0:
+		return 0.0
+	return minf(float(saved_minor) * 100.0 / float(target_minor), 100.0)
+
+
+## Сколько осталось накопить (не меньше нуля).
+static func goal_remaining(saved_minor: int, target_minor: int) -> int:
+	if target_minor <= 0:
+		return 0
+	return maxi(target_minor - maxi(saved_minor, 0), 0)
+
+
+## Месяцев до цели при регулярном взносе (округление вверх).
+## 0 — цель достигнута; -1 — взнос не задан или срок больше MAX_GOAL_MONTHS.
+static func months_to_goal(remaining_minor: int, monthly_contribution_minor: int) -> int:
+	if remaining_minor <= 0:
+		return 0
+	if monthly_contribution_minor <= 0:
+		return -1
+	var months: int = (remaining_minor + monthly_contribution_minor - 1) / monthly_contribution_minor
+	if months > MAX_GOAL_MONTHS:
+		return -1
+	return months
+
+
+## Сдвиг календарного месяца: (2026, 11) + 3 -> (2027, 2).
+static func add_months(year: int, month: int, months: int) -> Vector2i:
+	var index := year * 12 + (month - 1) + months
+	return Vector2i(index / 12, index % 12 + 1)

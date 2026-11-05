@@ -6,7 +6,8 @@ extends RefCounted
 ##   Label:          TitleLabel, HeadingLabel, DisplayLabel, ValueLabel,
 ##                   CaptionLabel, MutedLabel, AccentLabel, ErrorLabel, SectionLabel
 ##   Button:         PrimaryButton, SecondaryButton, GhostButton, DangerButton,
-##                   IconButton, NavButton, ChipButton, OptionRowButton
+##                   IconButton, NavButton, ChipButton, OptionRowButton,
+##                   CardButton, CardButtonSelected
 ##   PanelContainer: Card, AccentCard, InputPanel, ToastPanel, DialogPanel, NavPanel
 ##   LineEdit:       BareLineEdit
 
@@ -169,6 +170,21 @@ static func _build() -> Theme:
 	t.set_color("font_hover_pressed_color", "OptionRowButton", TEXT)
 	t.set_color("icon_pressed_color", "OptionRowButton", ACCENT)
 	t.set_color("icon_hover_pressed_color", "OptionRowButton", ACCENT)
+
+	t.set_type_variation("CardButton", "Button")
+	var card_normal := stylebox(SURFACE, RADIUS_CARD, Color(1, 1, 1, 0.04), 1, 0, 0)
+	var card_pressed := stylebox(SURFACE_2, RADIUS_CARD, Color(1, 1, 1, 0.06), 1, 0, 0)
+	t.set_stylebox("normal", "CardButton", card_normal)
+	t.set_stylebox("hover", "CardButton", card_normal)
+	t.set_stylebox("pressed", "CardButton", card_pressed)
+	t.set_stylebox("hover_pressed", "CardButton", card_pressed)
+	t.set_stylebox("focus", "CardButton", empty)
+	t.set_stylebox("disabled", "CardButton", card_normal)
+	var card_selected := stylebox(Color(0.11, 0.2, 0.22), RADIUS_CARD, ACCENT, 2, 0, 0)
+	t.set_type_variation("CardButtonSelected", "CardButton")
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		t.set_stylebox(state, "CardButtonSelected", card_selected)
+	t.set_stylebox("focus", "CardButtonSelected", empty)
 
 	# --- OptionButton / PopupMenu ---
 	_button_styles(t, "OptionButton", SURFACE_2, SURFACE_3, SURFACE_3, TEXT, 16, 14)

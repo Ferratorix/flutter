@@ -13,6 +13,7 @@ func _ready() -> void:
 	_build()
 	DataManager.history_changed.connect(_build)
 	DataManager.profile_changed.connect(_build)
+	DataManager.goals_changed.connect(_build)
 
 
 func _build() -> void:
@@ -36,6 +37,7 @@ func _build() -> void:
 
 	_build_rate_card(profile)
 	_build_quick_calc(profile)
+	_build_goal(profile)
 	_build_recent(profile)
 
 
@@ -110,6 +112,29 @@ func _update_quick_result() -> void:
 func _open_calculator() -> void:
 	if _quick_price > 0:
 		NavigationManager.switch_tab("calculator", {"price_minor": _quick_price})
+
+
+func _build_goal(profile: UserProfile) -> void:
+	var goal := DataManager.get_primary_goal()
+	var header := UI.hbox(8)
+	content.add_child(header)
+	var title := UI.label("Текущая цель", &"HeadingLabel")
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	if goal == null:
+		var box := UI.card(content, &"Card", 10)
+		var row := UI.hbox(12)
+		box.add_child(row)
+		row.add_child(UI.icon_badge("target", 40.0))
+		row.add_child(UI.label("Поставьте финансовую цель — покажем прогресс и сколько рабочего времени до неё осталось.", &"CaptionLabel", true))
+		box.add_child(UI.button("Создать цель", &"SecondaryButton", func() -> void: NavigationManager.push("goal_edit")))
+		return
+	var all := UI.button("Все цели", &"GhostButton", func() -> void: NavigationManager.switch_tab("goals"))
+	all.custom_minimum_size = Vector2(0, 40)
+	header.add_child(all)
+	var card := UI.tap_card(content, func() -> void: NavigationManager.push("goal_detail", {"id": goal.id}))
+	GoalView.fill_summary(card, goal, profile)
+	UI.pass_through(card)
 
 
 func _build_recent(_profile: UserProfile) -> void:
