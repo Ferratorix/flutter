@@ -122,6 +122,8 @@ static func icon_badge(icon_name: String, size: float = 44.0, color: Color = App
 	var panel := PanelContainer.new()
 	panel.theme_type_variation = &"IconBadge"
 	panel.custom_minimum_size = Vector2(size, size)
+	# Не растягивать по высоте строки — значок остаётся квадратным.
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var icon := IconLibrary.rect(icon_name, size * 0.5, color)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER

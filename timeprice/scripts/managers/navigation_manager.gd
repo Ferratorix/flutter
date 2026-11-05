@@ -40,6 +40,9 @@ const ROUTES := {
 	"deposit": "res://scenes/tools/deposit_screen.tscn",
 	"loan": "res://scenes/tools/loan_screen.tscn",
 	"installment": "res://scenes/tools/installment_screen.tscn",
+	"habit": "res://scenes/tools/habit_screen.tscn",
+	"cashback": "res://scenes/tools/cashback_screen.tscn",
+	"advice": "res://scenes/tools/advice_screen.tscn",
 }
 
 ## Вкладки нижней панели в порядке отображения.

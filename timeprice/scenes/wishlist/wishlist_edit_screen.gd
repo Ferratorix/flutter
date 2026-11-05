@@ -8,6 +8,7 @@ var _category_option: OptionButton
 var _priority_buttons: Array[Button] = []
 var _priority: int = WishlistItem.PRIORITY_MEDIUM
 var _preview: VBoxContainer
+var _cooldown_days: int = 0
 var _currency: String = Currency.DEFAULT_CODE
 
 
@@ -53,6 +54,8 @@ func on_enter(params: Dictionary) -> void:
 		priorities.add_child(chip)
 		_priority_buttons.append(chip)
 
+	_build_cooldown(form)
+
 	if _item != null:
 		_title_field.set_text(_item.title)
 		_price_field.set_amount(_item.price_minor)
@@ -72,10 +75,42 @@ func on_enter(params: Dictionary) -> void:
 	content.add_child(_preview)
 	content.add_child(UI.button("Добавить в список" if _item == null else "Сохранить изменения", &"PrimaryButton", _save))
 	if _item != null:
+		var decide := UI.hbox(10)
+		content.add_child(decide)
+		var bought := UI.button("Купил", &"SecondaryButton", _resolve.bind(WishlistItem.STATUS_BOUGHT))
+		bought.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		decide.add_child(bought)
+		var declined := UI.button("Передумал", &"SecondaryButton", _resolve.bind(WishlistItem.STATUS_DECLINED))
+		declined.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		decide.add_child(declined)
 		content.add_child(UI.button("Удалить желание", &"DangerButton", _confirm_delete))
 	_update_preview()
 	if _item == null:
 		_title_field.focus.call_deferred()
+
+
+func _build_cooldown(form: Control) -> void:
+	form.add_child(UI.label("Пауза перед покупкой", &"CaptionLabel"))
+	var now := DataUtil.now()
+	if _item != null and _item.is_cooling(now):
+		form.add_child(UI.label(Loc.tf("Идёт пауза до %s. Можно выбрать другую — отсчёт начнётся заново.", [Fmt.date(_item.cooldown_until)]), &"MutedLabel", true))
+	var options: Array = []
+	for days in WishlistItem.COOLDOWN_OPTIONS:
+		var d: int = days
+		options.append([str(d), Loc.t("Без паузы") if d == 0 else Loc.tf("%d %s", [d, Loc.plural(d, ["день", "дня", "дней"])])])
+	var selected := "0"
+	if _item == null:
+		_cooldown_days = 3
+		selected = "3"
+	var chips := FormKit.segmented(options, selected, func(v: String) -> void: _cooldown_days = v.to_int())
+	form.add_child(chips)
+	form.add_child(UI.label("Импульсивное желание часто проходит за несколько дней. Когда пауза закончится, TIMEPRICE спросит, нужна ли покупка.", &"MutedLabel", true))
+
+
+func _resolve(new_status: String) -> void:
+	if DataManager.resolve_wishlist_item(_item.id, new_status):
+		NavigationManager.go_back()
+		NavigationManager.show_toast(Loc.t("Сохранено в копилке решений") if new_status == WishlistItem.STATUS_DECLINED else Loc.t("Отмечено как купленное"))
 
 
 func handle_back() -> bool:
@@ -95,7 +130,7 @@ func _is_dirty() -> bool:
 	if _item == null:
 		return not _title_field.get_text().is_empty() or _price_field.get_amount() != InputField.EMPTY
 	return _title_field.get_text() != _item.title or _price_field.get_amount() != _item.price_minor \
-		or _priority != _item.priority or _selected_category() != _item.category
+		or _priority != _item.priority or _selected_category() != _item.category or _cooldown_days > 0
 
 
 func _selected_category() -> String:
@@ -143,6 +178,7 @@ func _save() -> void:
 		return
 	if _item == null:
 		var item := WishlistItem.create(title, price, _currency, _selected_category(), _priority)
+		item.start_cooldown(_cooldown_days, DataUtil.now())
 		if DataManager.add_wishlist_item(item):
 			NavigationManager.go_back()
 			NavigationManager.show_toast(Loc.t("Добавлено в список желаний"))
@@ -154,6 +190,8 @@ func _save() -> void:
 	_item.price_minor = price
 	_item.category = _selected_category()
 	_item.priority = _priority
+	if _cooldown_days > 0:
+		_item.start_cooldown(_cooldown_days, DataUtil.now())
 	if price_changed:
 		_item.currency = _currency
 		_item.original_price_minor = 0

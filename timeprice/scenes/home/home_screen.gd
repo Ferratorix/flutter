@@ -14,6 +14,7 @@ func _ready() -> void:
 	DataManager.history_changed.connect(_build)
 	DataManager.profile_changed.connect(_build)
 	DataManager.goals_changed.connect(_build)
+	DataManager.wishlist_changed.connect(_build)
 
 
 func _build() -> void:
@@ -35,9 +36,12 @@ func _build() -> void:
 		add_profile_required_card(content)
 		return
 
+	_build_decisions_banner()
 	_build_rate_card(profile)
 	_build_quick_calc(profile)
 	_build_goal(profile)
+	_build_savings_jar(profile)
+	_build_tip()
 	_build_recent(profile)
 
 
@@ -146,6 +150,58 @@ func _build_goal(profile: UserProfile) -> void:
 	var card := UI.tap_card(content, func() -> void: NavigationManager.push("goal_detail", {"id": goal.id}))
 	GoalView.fill_summary(card, goal, profile)
 	UI.pass_through(card)
+
+
+func _build_decisions_banner() -> void:
+	var due := DataManager.wishlist_decisions_due()
+	if due.is_empty():
+		return
+	var box := UI.tap_card(content, func() -> void: NavigationManager.switch_tab("wishlist"), 6)
+	UI.tap_card_button(box).theme_type_variation = &"CardButtonSelected"
+	var row := UI.hbox(12)
+	box.add_child(row)
+	row.add_child(UI.icon_badge("clock", 40.0))
+	var col := UI.vbox(2)
+	row.add_child(col)
+	col.add_child(UI.label(Loc.tf("Пауза закончилась: %d %s", [due.size(), Loc.plural(due.size(), ["желание", "желания", "желаний"])]), &"ValueLabel", true))
+	col.add_child(UI.label("Решите, нужны ли эти покупки, — нажмите, чтобы открыть список.", &"CaptionLabel", true))
+	UI.pass_through(box)
+
+
+func _build_savings_jar(profile: UserProfile) -> void:
+	var summary := DataManager.declined_summary()
+	var total: int = summary["total_minor"]
+	if int(summary["count"]) == 0 or total <= 0:
+		return
+	var box := UI.card(content, &"Card", 6)
+	var row := UI.hbox(12)
+	box.add_child(row)
+	row.add_child(UI.icon_badge("shield", 40.0))
+	var col := UI.vbox(2)
+	row.add_child(col)
+	col.add_child(UI.label("Копилка решений", &"CaptionLabel"))
+	col.add_child(UI.label(Fmt.money(total, profile.currency), &"ValueLabel"))
+	var r := profile.calculate(total)
+	if r["ok"]:
+		col.add_child(UI.label(Loc.tf("%s работы сохранено — вы передумали покупать %d %s.", [Fmt.duration(r["total_minutes"]),
+			int(summary["count"]), Loc.plural(int(summary["count"]), ["вещь", "вещи", "вещей"])]), &"AccentLabel", true))
+
+
+func _build_tip() -> void:
+	var tip := Tips.tip_of_day(DataUtil.now())
+	var box := UI.tap_card(content, func() -> void: NavigationManager.push("advice"), 8)
+	var head := UI.hbox(10)
+	box.add_child(head)
+	head.add_child(UI.icon_badge(Tips.CATEGORY_ICONS.get(tip["category"], "star"), 32.0))
+	var col := UI.vbox(0)
+	head.add_child(col)
+	col.add_child(UI.label("Совет дня", &"MutedLabel"))
+	col.add_child(UI.label(tip["title"], &"ValueLabel", true))
+	box.add_child(UI.label(tip["text"], &"CaptionLabel", true))
+	var count := Advisor.for_current_user().size()
+	var more := Loc.tf("Рекомендации для вас: %d →", [count]) if count > 0 else Loc.t("Все советы →")
+	box.add_child(UI.label(more, &"AccentLabel"))
+	UI.pass_through(box)
 
 
 func _build_recent(_profile: UserProfile) -> void:

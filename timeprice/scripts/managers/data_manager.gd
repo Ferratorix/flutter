@@ -15,8 +15,9 @@ signal save_failed
 
 const DATA_PATH := "user://timeprice_data.json"
 const BACKUP_PATH := "user://timeprice_data.backup.json"
-## v1 — профиль и история; v2 — добавлены цели и список желаний.
-const SCHEMA_VERSION := 2
+## v1 — профиль и история; v2 — цели и список желаний;
+## v3 — статусы желаний и пауза перед покупкой.
+const SCHEMA_VERSION := 3
 const MAX_HISTORY := 500
 const MAX_GOALS := 100
 const MAX_WISHLIST := 500
@@ -225,8 +226,38 @@ func find_wishlist_item(id: String) -> WishlistItem:
 	return null
 
 
+## Желания в списке (без купленных и отклонённых).
+func active_wishlist() -> Array:
+	return WishlistItem.with_status(wishlist, WishlistItem.STATUS_ACTIVE)
+
+
+## Желания, у которых закончилась пауза и нужно принять решение.
+func wishlist_decisions_due() -> Array:
+	var now := DataUtil.now()
+	var out: Array = []
+	for w in wishlist:
+		if w.is_decision_due(now):
+			out.append(w)
+	return out
+
+
+## Итоги «копилки решений»: от каких покупок отказались, сумма в валюте профиля.
+func declined_summary() -> Dictionary:
+	var items := WishlistItem.with_status(wishlist, WishlistItem.STATUS_DECLINED)
+	return {"count": items.size(), "total_minor": WishlistItem.total_price(items, profile.currency)}
+
+
+func resolve_wishlist_item(id: String, new_status: String) -> bool:
+	var item := find_wishlist_item(id)
+	if item == null:
+		return false
+	var updated := item.copy()
+	updated.resolve(new_status, DataUtil.now())
+	return update_wishlist_item(updated)
+
+
 func can_add_wishlist_item() -> bool:
-	return wishlist.size() < MAX_WISHLIST
+	return active_wishlist().size() < MAX_WISHLIST
 
 
 func add_wishlist_item(item: WishlistItem) -> bool:
@@ -307,7 +338,7 @@ func _apply(data: Dictionary) -> void:
 	_normalize_primary_goal()
 	wishlist.clear()
 	for entry in DataUtil.get_array(data, "wishlist"):
-		if typeof(entry) == TYPE_DICTIONARY and wishlist.size() < MAX_WISHLIST:
+		if typeof(entry) == TYPE_DICTIONARY and wishlist.size() < MAX_WISHLIST * 4:
 			var wish := WishlistItem.from_dict(entry)
 			if wish != null:
 				wishlist.append(wish)
@@ -319,6 +350,7 @@ func _migrate(data: Dictionary) -> Dictionary:
 	if version > SCHEMA_VERSION:
 		push_warning("Данные созданы более новой версией приложения (схема %d)." % version)
 	# v1 -> v2: новых обязательных полей нет, цели и желания начинаются с пустых списков.
+	# v2 -> v3: у желаний без статуса статус «в списке», пауза не задана (значения по умолчанию).
 	if version < 2:
 		data["goals"] = DataUtil.get_array(data, "goals")
 		data["wishlist"] = DataUtil.get_array(data, "wishlist")

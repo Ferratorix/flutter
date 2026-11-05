@@ -42,16 +42,25 @@ static func term(parent: Control, title: String, presets: Array) -> InputField:
 
 
 ## Переключатель из нескольких вариантов: options = [[значение, подпись], ...].
-static func segmented(options: Array, selected: String, on_change: Callable) -> HBoxContainer:
-	var row := UI.hbox(8)
+## До трёх вариантов — в одну строку, больше — с переносом.
+static func segmented(options: Array, selected: String, on_change: Callable) -> Container:
+	var row: Container
+	if options.size() <= 3:
+		row = UI.hbox(8)
+	else:
+		var flow := HFlowContainer.new()
+		flow.add_theme_constant_override("h_separation", 8)
+		flow.add_theme_constant_override("v_separation", 8)
+		row = flow
 	var group := ButtonGroup.new()
 	for option in options:
 		var value: String = option[0]
 		var chip := UI.button(option[1], &"ChipButton")
 		chip.toggle_mode = true
 		chip.button_group = group
-		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		chip.custom_minimum_size.y = 44
+		if options.size() <= 3:
+			chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		chip.custom_minimum_size.y = 40 if options.size() > 3 else 44
 		chip.button_pressed = value == selected
 		chip.toggled.connect(func(on: bool) -> void:
 			if on:

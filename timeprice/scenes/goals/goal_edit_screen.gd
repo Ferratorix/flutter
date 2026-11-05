@@ -52,7 +52,15 @@ func on_enter(params: Dictionary) -> void:
 	content.add_child(UI.button("Сохранить цель" if _goal == null else "Сохранить изменения", &"PrimaryButton", _save))
 	_update_preview()
 	if _goal == null:
-		_title_field.focus.call_deferred()
+		# Предзаполнение из рекомендаций (например, «Подушка безопасности»).
+		if params.has("title"):
+			_title_field.set_text(str(params["title"]))
+		var preset_target: int = int(params.get("target_minor", -1))
+		if preset_target > 0:
+			_target_field.set_amount(preset_target)
+			_update_preview()
+		else:
+			_title_field.focus.call_deferred()
 
 
 func handle_back() -> bool:

@@ -21,7 +21,14 @@ func shot(shot_name: String) -> void:
 	await wait(30)
 	get_viewport().get_texture().get_image().save_png(OUT + shot_name + ".png")
 
-func drag_at(from: Vector2, distance: float) -> void:
+## Координаты интерфейса -> координаты окна (учёт масштабирования экрана).
+func to_window(p: Vector2) -> Vector2:
+	return get_tree().root.get_final_transform() * p
+
+
+func drag_at(ui_from: Vector2, ui_distance: float) -> void:
+	var from := to_window(ui_from)
+	var distance := ui_distance * get_tree().root.get_final_transform().get_scale().y
 	var ev := InputEventMouseButton.new()
 	ev.button_index = MOUSE_BUTTON_LEFT
 	ev.pressed = true
@@ -46,7 +53,8 @@ func drag_at(from: Vector2, distance: float) -> void:
 	await wait(20)
 
 
-func tap_at(at: Vector2) -> void:
+func tap_at(ui_at: Vector2) -> void:
+	var at := to_window(ui_at)
 	var ev := InputEventMouseButton.new()
 	ev.button_index = MOUSE_BUTTON_LEFT
 	ev.pressed = true
@@ -246,6 +254,53 @@ func _ready() -> void:
 	main._handle_back()
 	await wait()
 	check(route() == "tools", "Назад из инструментов")
+	NavigationManager.push("habit")
+	await wait()
+	var hab = screen()
+	hab._apply_preset(hab.PRESETS[0])
+	hab._rate.set_text("14")
+	hab._recalculate()
+	await shot("27_habit")
+	hab.scroll.scroll_vertical = 700
+	await shot("28_habit_results")
+	main._handle_back()
+	await wait()
+	NavigationManager.push("cashback")
+	await wait()
+	var cb = screen()
+	cb._spend["groceries"].set_text("150 000")
+	cb._rates["groceries"].set_text("3")
+	cb._spend["cafe"].set_text("40 000")
+	cb._rates["cafe"].set_text("5")
+	cb._cap.set_text("5 000")
+	cb._fee.set_text("12 000")
+	cb._recalculate()
+	cb.scroll.scroll_vertical = 900
+	await shot("29_cashback")
+	main._handle_back()
+	await wait()
+	NavigationManager.push("advice")
+	await shot("30_advice")
+	var adv = screen()
+	adv.scroll.scroll_vertical = 1400
+	await shot("31_advice_tips")
+	main._handle_back()
+	await wait()
+	# Пауза перед покупкой и копилка решений.
+	var pending := WishlistItem.create("Кроссовки", 4_500_000, "KZT")
+	pending.cooldown_until = DataUtil.now() - 10
+	DataManager.add_wishlist_item(pending)
+	NavigationManager.switch_tab("home")
+	await shot("32_home_decision")
+	NavigationManager.switch_tab("wishlist")
+	await wait()
+	screen()._resolve(pending.id, WishlistItem.STATUS_DECLINED)
+	await wait()
+	check(DataManager.declined_summary()["count"] == 1, "решение «передумал» сохранено")
+	screen().scroll.scroll_vertical = 3000
+	await shot("33_wishlist_jar")
+	NavigationManager.switch_tab("tools")
+	await wait()
 	NavigationManager.push("history")
 	await shot("20_history")
 	main._handle_back()
@@ -262,7 +317,8 @@ func _ready() -> void:
 	# Перезапуск: данные перечитываются с диска.
 	DataManager.load_data()
 	check(DataManager.profile.is_ready(), "профиль после перезапуска")
-	check(DataManager.history.size() == 1 and DataManager.goals.size() == 1 and DataManager.wishlist.size() == 3, "данные после перезапуска")
+	check(DataManager.history.size() == 1 and DataManager.goals.size() == 1 and DataManager.wishlist.size() == 4, "данные после перезапуска")
+	check(DataManager.declined_summary()["count"] == 1, "копилка решений после перезапуска")
 	# Повреждённый файл.
 	var f := FileAccess.open(DataManager.DATA_PATH, FileAccess.WRITE)
 	f.store_string("{broken")

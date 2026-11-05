@@ -39,12 +39,13 @@ func _build_content() -> void:
 	if not profile.is_valid():
 		add_profile_required_card(content)
 		return
-	var items := DataManager.wishlist
+	var items := DataManager.active_wishlist()
 	if items.is_empty():
 		UI.empty_state(content, "heart", "Список желаний пуст",
 			"Добавляйте сюда покупки, которые планируете. TIMEPRICE покажет стоимость каждой в рабочих часах и поможет сравнить их между собой.")
 		content.add_child(UI.button("Добавить желание", &"PrimaryButton", _add))
 		content.add_child(UI.label("Желание можно добавить и из калькулятора после расчёта.", &"MutedLabel", true))
+		_build_decisions(profile)
 		return
 
 	_build_summary(items, profile)
@@ -55,9 +56,11 @@ func _build_content() -> void:
 		_add_card(item, profile)
 	if not _compare_mode and DataManager.can_add_wishlist_item():
 		content.add_child(UI.button("Добавить желание", &"SecondaryButton", _add))
+	if not _compare_mode:
+		_build_decisions(profile)
 
 
-func _build_summary(items: Array[WishlistItem], profile: UserProfile) -> void:
+func _build_summary(items: Array, profile: UserProfile) -> void:
 	var total := WishlistItem.total_price(items, profile.currency)
 	var box := UI.card(content, &"AccentCard", 6)
 	box.add_child(UI.label(Loc.tf("%d %s на сумму", [items.size(), Loc.plural(items.size(), ["желание", "желания", "желаний"])]), &"CaptionLabel"))
@@ -106,7 +109,7 @@ func _build_comparison(profile: UserProfile) -> void:
 	var box := UI.card(content, &"Card", 10)
 	box.add_child(UI.label("Сравнение", &"HeadingLabel"))
 	var chosen: Array = []
-	for item in DataManager.wishlist:
+	for item in DataManager.active_wishlist():
 		if _selected.has(item.id):
 			chosen.append(item)
 	if chosen.size() < 2:
@@ -185,7 +188,74 @@ func _add_card(item: WishlistItem, profile: UserProfile) -> void:
 	else:
 		box.add_child(UI.label("Валюта желания отличается от валюты дохода — рабочее время не рассчитать. Откройте желание и обновите цену.", &"MutedLabel", true))
 	box.add_child(UI.label(Loc.tf("Добавлено %s", [Fmt.date(item.created_at)]), &"MutedLabel"))
+	var now := DataUtil.now()
+	if item.is_cooling(now):
+		var days := item.cooldown_days_left(now)
+		box.add_child(UI.tag(Loc.tf("Пауза: ещё %d %s · до %s", [days, Loc.plural(days, ["день", "дня", "дней"]), Fmt.date(item.cooldown_until)]), AppTheme.ACCENT))
+	elif item.is_decision_due(now) and not _compare_mode:
+		box.add_child(UI.label("Пауза закончилась. Эта покупка всё ещё нужна?", &"AccentLabel", true))
+		var row := UI.hbox(8)
+		box.add_child(row)
+		var bought := UI.button("Куплю", &"SecondaryButton", _resolve.bind(item.id, WishlistItem.STATUS_BOUGHT))
+		bought.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(bought)
+		var declined := UI.button("Передумал", &"PrimaryButton", _resolve.bind(item.id, WishlistItem.STATUS_DECLINED))
+		declined.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(declined)
 	UI.pass_through(box)
+
+
+## Копилка решений: от чего отказались и что купили.
+func _build_decisions(profile: UserProfile) -> void:
+	var declined := WishlistItem.with_status(DataManager.wishlist, WishlistItem.STATUS_DECLINED)
+	var bought := WishlistItem.with_status(DataManager.wishlist, WishlistItem.STATUS_BOUGHT)
+	if declined.is_empty() and bought.is_empty():
+		return
+	content.add_child(UI.spacer(4))
+	content.add_child(UI.label("КОПИЛКА РЕШЕНИЙ", &"SectionLabel"))
+	var box := UI.card(content, &"Card", 8)
+	if not declined.is_empty():
+		var total := WishlistItem.total_price(declined, profile.currency)
+		box.add_child(UI.label(Loc.tf("Вы передумали покупать %d %s на %s", [declined.size(),
+			Loc.plural(declined.size(), ["вещь", "вещи", "вещей"]), Fmt.money(total, profile.currency)]), &"ValueLabel", true))
+		var r := profile.calculate(total)
+		if r["ok"]:
+			box.add_child(UI.label(Loc.tf("Это %s вашей работы, которые остались при вас.", [Fmt.duration(r["total_minutes"])]), &"AccentLabel", true))
+	if not bought.is_empty():
+		box.add_child(UI.label(Loc.tf("Куплено после паузы: %d", [bought.size()]), &"CaptionLabel"))
+	for item in WishlistItem.sorted(declined + bought, WishlistItem.SORT_NEWEST):
+		var w := item as WishlistItem
+		box.add_child(UI.separator())
+		var row := UI.hbox(8)
+		box.add_child(row)
+		var col := UI.vbox(2)
+		row.add_child(col)
+		var t := UI.label(w.title, &"")
+		t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.add_child(t)
+		var status_text := Loc.t("передумал") if w.status == WishlistItem.STATUS_DECLINED else Loc.t("куплено")
+		col.add_child(UI.label("%s · %s · %s" % [Fmt.money(w.price_minor, w.currency), status_text, Fmt.date(w.resolved_at)], &"MutedLabel", true))
+		var back := UI.button("Вернуть", &"GhostButton", _resolve.bind(w.id, WishlistItem.STATUS_ACTIVE))
+		back.custom_minimum_size = Vector2(0, 40)
+		row.add_child(back)
+
+
+func _resolve(id: String, new_status: String) -> void:
+	var item := DataManager.find_wishlist_item(id)
+	if item == null:
+		return
+	if DataManager.resolve_wishlist_item(id, new_status):
+		match new_status:
+			WishlistItem.STATUS_DECLINED:
+				var r := DataManager.profile.calculate(item.price_minor)
+				var hours := Fmt.duration(r["total_minutes"]) if r["ok"] else ""
+				NavigationManager.show_toast(Loc.tf("Сохранено %s%s", [Fmt.money(item.price_minor, item.currency),
+					(" — " + hours + " " + Loc.t("работы")) if not hours.is_empty() else ""]))
+			WishlistItem.STATUS_BOUGHT:
+				NavigationManager.show_toast(Loc.t("Отмечено как купленное"))
+			_:
+				NavigationManager.show_toast(Loc.t("Возвращено в список желаний"))
 
 
 func _stat(parent: Control, key: String, value: String) -> void:

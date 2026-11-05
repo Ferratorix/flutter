@@ -29,6 +29,16 @@ const CATEGORY_NAMES := {
 	"other": "Другое",
 }
 
+## Статусы: желание в списке, куплено, решено не покупать.
+const STATUS_ACTIVE := "active"
+const STATUS_BOUGHT := "bought"
+const STATUS_DECLINED := "declined"
+const STATUSES := [STATUS_ACTIVE, STATUS_BOUGHT, STATUS_DECLINED]
+
+## Варианты «паузы перед покупкой» в днях.
+const COOLDOWN_OPTIONS := [0, 1, 3, 7, 30]
+const SECONDS_PER_DAY := 86_400
+
 const SORT_PRIORITY := "priority"
 const SORT_NEWEST := "newest"
 const SORT_PRICE_DESC := "price_desc"
@@ -52,6 +62,11 @@ var category: String = DEFAULT_CATEGORY
 var priority: int = PRIORITY_MEDIUM
 var created_at: int = 0
 var updated_at: int = 0
+var status: String = STATUS_ACTIVE
+## Окончание паузы перед покупкой (unix-время); 0 — без паузы.
+var cooldown_until: int = 0
+## Когда принято решение «куплено» / «передумал».
+var resolved_at: int = 0
 
 
 static func create(p_title: String, p_price: int, p_currency: String, p_category: String = DEFAULT_CATEGORY,
@@ -80,6 +95,45 @@ func is_valid() -> bool:
 	return not id.is_empty() and not title.is_empty() and FinancialCalculator.is_price_valid(price_minor) \
 		and Currency.is_supported(currency) and CATEGORY_NAMES.has(category) \
 		and priority >= PRIORITY_HIGH and priority <= PRIORITY_LOW
+
+
+func is_active() -> bool:
+	return status == STATUS_ACTIVE
+
+
+func has_cooldown() -> bool:
+	return cooldown_until > 0
+
+
+## Пауза идёт и ещё не закончилась.
+func is_cooling(now: int) -> bool:
+	return is_active() and cooldown_until > now
+
+
+## Пауза закончилась, а решение ещё не принято.
+func is_decision_due(now: int) -> bool:
+	return is_active() and cooldown_until > 0 and cooldown_until <= now
+
+
+func start_cooldown(days: int, now: int) -> void:
+	cooldown_until = now + maxi(days, 0) * SECONDS_PER_DAY if days > 0 else 0
+
+
+func resolve(new_status: String, now: int) -> void:
+	if not STATUSES.has(new_status):
+		return
+	status = new_status
+	resolved_at = now if new_status != STATUS_ACTIVE else 0
+	if new_status == STATUS_ACTIVE:
+		cooldown_until = 0
+	updated_at = now
+
+
+## Сколько полных дней (вверх) осталось до конца паузы.
+func cooldown_days_left(now: int) -> int:
+	if not is_cooling(now):
+		return 0
+	return (cooldown_until - now + SECONDS_PER_DAY - 1) / SECONDS_PER_DAY
 
 
 func has_original_price() -> bool:
@@ -116,6 +170,16 @@ static func sorted(items: Array, mode: String) -> Array:
 	return out
 
 
+## Только желания с указанным статусом.
+static func with_status(items: Array, wanted: String) -> Array:
+	var out: Array = []
+	for item in items:
+		var w := item as WishlistItem
+		if w != null and w.status == wanted:
+			out.append(w)
+	return out
+
+
 ## Сумма цен желаний в указанной валюте (желания в других валютах не учитываются).
 static func total_price(items: Array, currency_code: String) -> int:
 	var total := 0
@@ -138,6 +202,9 @@ func to_dict() -> Dictionary:
 		"priority": priority,
 		"created_at": created_at,
 		"updated_at": updated_at,
+		"status": status,
+		"cooldown_until": cooldown_until,
+		"resolved_at": resolved_at,
 	}
 
 
@@ -155,4 +222,8 @@ static func from_dict(data: Dictionary) -> WishlistItem:
 	item.priority = DataUtil.get_int(data, "priority", PRIORITY_MEDIUM, PRIORITY_HIGH, PRIORITY_LOW)
 	item.created_at = DataUtil.get_int(data, "created_at", 0, 0, 1 << 40)
 	item.updated_at = DataUtil.get_int(data, "updated_at", item.created_at, 0, 1 << 40)
+	var st := DataUtil.get_string(data, "status", STATUS_ACTIVE, 16)
+	item.status = st if STATUSES.has(st) else STATUS_ACTIVE
+	item.cooldown_until = DataUtil.get_int(data, "cooldown_until", 0, 0, 1 << 40)
+	item.resolved_at = DataUtil.get_int(data, "resolved_at", 0, 0, 1 << 40)
 	return item if item.is_valid() else null
