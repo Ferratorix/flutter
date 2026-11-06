@@ -133,6 +133,49 @@ func set_tool_inputs(tool: String, values: Dictionary) -> void:
 	save_settings()
 
 
+## Настройки для резервной копии (без языка — он относится к устройству).
+func export_dict() -> Dictionary:
+	return {
+		"reduce_motion": reduce_motion,
+		"exchange_rates": exchange_rates.duplicate(),
+		"simulator_expenses_minor": simulator_expenses_minor,
+		"simulator_monthly_savings_minor": simulator_monthly_savings_minor,
+		"tool_inputs": tool_inputs.duplicate(true),
+	}
+
+
+## Восстановление настроек из резервной копии с проверкой типов.
+func import_dict(data: Dictionary) -> void:
+	reduce_motion = DataUtil.get_bool(data, "reduce_motion", reduce_motion)
+	exchange_rates = {}
+	var rates := DataUtil.get_dict(data, "exchange_rates")
+	for key in rates:
+		var v: Variant = rates[key]
+		if typeof(key) == TYPE_STRING and (typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT):
+			var rate := int(v)
+			if rate > 0 and rate <= FinancialCalculator.MAX_RATE:
+				exchange_rates[key] = rate
+	simulator_expenses_minor = DataUtil.get_int(data, "simulator_expenses_minor", -1, -1, Money.MAX_MINOR)
+	simulator_monthly_savings_minor = DataUtil.get_int(data, "simulator_monthly_savings_minor", -1, -1, Money.MAX_MINOR)
+	tool_inputs = {}
+	var tools := DataUtil.get_dict(data, "tool_inputs")
+	for tool in tools:
+		if typeof(tool) != TYPE_STRING or typeof(tools[tool]) != TYPE_DICTIONARY:
+			continue
+		var clean := {}
+		for key in tools[tool]:
+			var v: Variant = tools[tool][key]
+			if typeof(key) != TYPE_STRING:
+				continue
+			if typeof(v) == TYPE_FLOAT:
+				clean[key] = int(v)
+			elif typeof(v) == TYPE_INT or typeof(v) == TYPE_STRING:
+				clean[key] = v
+		tool_inputs[tool] = clean
+	save_settings()
+	settings_changed.emit()
+
+
 func reset() -> void:
 	_set_defaults()
 	if FileAccess.file_exists(SETTINGS_PATH):

@@ -57,7 +57,7 @@ func _build_rate_card(profile: UserProfile) -> void:
 	_stat(stats, "Часов в день", Fmt.hours_from_minutes(profile.work_minutes_per_day))
 	var edit := UI.button("Изменить данные", &"GhostButton", func() -> void: NavigationManager.push("settings"))
 	edit.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	edit.custom_minimum_size.y = 40
+	edit.custom_minimum_size.y = 44
 	box.add_child(edit)
 
 
@@ -93,7 +93,7 @@ func _update_quick_result() -> void:
 		_quick_result.add_child(UI.label("Введите стоимость — покажем, сколько рабочего времени она занимает.", &"CaptionLabel", true))
 		var sim := UI.button("Моделирование покупки", &"GhostButton", func() -> void: NavigationManager.push("simulator"))
 		sim.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		sim.custom_minimum_size.y = 40
+		sim.custom_minimum_size.y = 44
 		_quick_result.add_child(sim)
 		return
 	if price == Money.INVALID:
@@ -145,7 +145,7 @@ func _build_goal(profile: UserProfile) -> void:
 		box.add_child(UI.button("Создать цель", &"SecondaryButton", func() -> void: NavigationManager.push("goal_edit")))
 		return
 	var all := UI.button("Все цели", &"GhostButton", func() -> void: NavigationManager.switch_tab("goals"))
-	all.custom_minimum_size = Vector2(0, 40)
+	all.custom_minimum_size = Vector2(0, 44)
 	header.add_child(all)
 	var card := UI.tap_card(content, func() -> void: NavigationManager.push("goal_detail", {"id": goal.id}))
 	GoalView.fill_summary(card, goal, profile)
@@ -216,7 +216,7 @@ func _build_recent(_profile: UserProfile) -> void:
 			"Рассчитайте покупку в калькуляторе и сохраните результат — он появится здесь.")
 		return
 	var all := UI.button("Все", &"GhostButton", func() -> void: NavigationManager.push("history"))
-	all.custom_minimum_size = Vector2(0, 40)
+	all.custom_minimum_size = Vector2(0, 44)
 	header.add_child(all)
 	var box := UI.card(content, &"Card", 4)
 	for i in recent.size():

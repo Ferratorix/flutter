@@ -43,7 +43,7 @@ static func _build_savings(box: Control, r: Dictionary, profile: UserProfile) ->
 		box.add_child(UI.label("Укажите текущие накопления в настройках, чтобы сравнить с ними покупку.", &"MutedLabel", true))
 		var link := UI.button("Указать накопления", &"GhostButton", func() -> void: NavigationManager.push("settings"))
 		link.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		link.custom_minimum_size.y = 40
+		link.custom_minimum_size.y = 44
 		box.add_child(link)
 		return
 	if profile.savings_minor == 0:

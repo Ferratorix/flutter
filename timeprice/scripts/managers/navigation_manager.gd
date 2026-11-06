@@ -35,6 +35,7 @@ const ROUTES := {
 	"wishlist": "res://scenes/wishlist/wishlist_screen.tscn",
 	"wishlist_edit": "res://scenes/wishlist/wishlist_edit_screen.tscn",
 	"settings": "res://scenes/settings/settings_screen.tscn",
+	"about": "res://scenes/settings/about_screen.tscn",
 	"simulator": "res://scenes/simulator/simulator_screen.tscn",
 	"tools": "res://scenes/tools/tools_screen.tscn",
 	"deposit": "res://scenes/tools/deposit_screen.tscn",

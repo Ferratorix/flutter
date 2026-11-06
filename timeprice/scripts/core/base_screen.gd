@@ -6,6 +6,11 @@ extends Control
 
 var scroll: ScrollContainer
 var content: VBoxContainer
+var _content_margin: MarginContainer
+
+## Максимальная ширина колонки контента: на планшетах и в ландшафте
+## (Android 16 не фиксирует ориентацию на больших экранах) колонка центрируется.
+const MAX_CONTENT_WIDTH := 640.0
 
 
 func on_enter(_params: Dictionary) -> void:
@@ -15,6 +20,12 @@ func on_enter(_params: Dictionary) -> void:
 ## Экран снова стал верхним после закрытия экрана над ним.
 ## Переопределите, чтобы обновить данные, которые могли измениться.
 func on_resume() -> void:
+	pass
+
+
+## Сохранить черновые значения экрана. Вызывается при уходе с экрана и когда
+## приложение уходит в фон (Android может завершить процесс без предупреждения).
+func save_state() -> void:
 	pass
 
 
@@ -38,6 +49,8 @@ func build_scroll_layout(parent: Control = null, separation: int = 16) -> VBoxCo
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.add_theme_constant_override("margin_left", AppTheme.SCREEN_PADDING)
 	margin.add_theme_constant_override("margin_right", AppTheme.SCREEN_PADDING)
+	_content_margin = margin
+	scroll.resized.connect(_update_content_width)
 	margin.add_theme_constant_override("margin_top", 12)
 	margin.add_theme_constant_override("margin_bottom", 28)
 	scroll.add_child(margin)
@@ -57,6 +70,14 @@ func rebuild_keep_scroll(build: Callable) -> void:
 	await get_tree().process_frame
 	if is_instance_valid(scroll):
 		scroll.scroll_vertical = position_before
+
+
+func _update_content_width() -> void:
+	if scroll == null or _content_margin == null:
+		return
+	var side := maxf(AppTheme.SCREEN_PADDING, (scroll.size.x - MAX_CONTENT_WIDTH) / 2.0)
+	_content_margin.add_theme_constant_override("margin_left", int(side))
+	_content_margin.add_theme_constant_override("margin_right", int(side))
 
 
 ## Сообщение о необходимости настроить профиль (если данные повреждены или сброшены).

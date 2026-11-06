@@ -36,7 +36,7 @@ static func term(parent: Control, title: String, presets: Array) -> InputField:
 		var chip := UI.button(label, &"ChipButton", func() -> void:
 			f.set_amount(m)
 			f.changed.emit())
-		chip.custom_minimum_size = Vector2(0, 36)
+		chip.custom_minimum_size = Vector2(0, 44)
 		chips.add_child(chip)
 	return f
 
@@ -60,7 +60,7 @@ static func segmented(options: Array, selected: String, on_change: Callable) -> 
 		chip.button_group = group
 		if options.size() <= 3:
 			chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		chip.custom_minimum_size.y = 40 if options.size() > 3 else 44
+		chip.custom_minimum_size.y = 44
 		chip.button_pressed = value == selected
 		chip.toggled.connect(func(on: bool) -> void:
 			if on:

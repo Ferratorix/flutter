@@ -13,7 +13,7 @@ static func build(parent: Control, rows: Array, currency_code: String, show_inte
 	_fill(list, rows, currency_code, show_interest, mini(PREVIEW_ROWS, rows.size()))
 	if rows.size() > PREVIEW_ROWS:
 		var more := UI.button(Loc.tf("Показать весь график (%d)", [rows.size()]), &"GhostButton")
-		more.custom_minimum_size.y = 40
+		more.custom_minimum_size.y = 44
 		more.pressed.connect(func() -> void:
 			UI.clear_children(list)
 			_fill(list, rows, currency_code, show_interest, rows.size())

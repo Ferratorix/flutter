@@ -29,31 +29,42 @@ static func read(path: String) -> Dictionary:
 
 
 static func write_atomic(path: String, data: Dictionary, backup_path: String = "") -> Error:
-	var text := JSON.stringify(data, "\t")
+	return write_text_atomic(path, JSON.stringify(data, "\t"), backup_path)
+
+
+## Атомарная запись текста. Основной файл не удаляется заранее: временный файл
+## переименовывается поверх него (на Android и Linux это атомарная операция).
+## При нехватке места или другой ошибке основной файл остаётся прежним.
+static func write_text_atomic(path: String, text: String, backup_path: String = "") -> Error:
 	var tmp_path := path + ".tmp"
 	var file := FileAccess.open(tmp_path, FileAccess.WRITE)
 	if file == null:
 		return FileAccess.get_open_error()
-	file.store_string(text)
+	var written := file.store_string(text)
 	file.close()
+	if not written:
+		DirAccess.remove_absolute(tmp_path)
+		return ERR_FILE_CANT_WRITE
 	var check := read(tmp_path)
 	if check["status"] != Status.LOADED:
 		DirAccess.remove_absolute(tmp_path)
 		return ERR_FILE_CORRUPT
-	if FileAccess.file_exists(path):
-		if not backup_path.is_empty():
-			DirAccess.copy_absolute(path, backup_path)
-		DirAccess.remove_absolute(path)
+	if not backup_path.is_empty() and FileAccess.file_exists(path):
+		DirAccess.copy_absolute(path, backup_path)
 	var err := DirAccess.rename_absolute(tmp_path, path)
+	if err != OK and FileAccess.file_exists(path):
+		# Платформы, где переименование не перезаписывает файл: резервная копия уже есть.
+		DirAccess.remove_absolute(path)
+		err = DirAccess.rename_absolute(tmp_path, path)
 	if err != OK:
-		# Запасной путь: прямая запись основного файла.
+		# Последний вариант: прямая запись основного файла.
 		var direct := FileAccess.open(path, FileAccess.WRITE)
 		if direct == null:
 			return FileAccess.get_open_error()
-		direct.store_string(text)
+		var ok := direct.store_string(text)
 		direct.close()
 		DirAccess.remove_absolute(tmp_path)
-		err = OK
+		err = OK if ok else ERR_FILE_CANT_WRITE
 	return err
 
 

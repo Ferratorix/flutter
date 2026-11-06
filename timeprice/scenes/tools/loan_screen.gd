@@ -56,6 +56,11 @@ func on_enter(params: Dictionary) -> void:
 
 
 func _exit_tree() -> void:
+	save_state()
+
+
+## Сохраняет последние введённые значения (при уходе с экрана и при сворачивании).
+func save_state() -> void:
 	if _amount == null:
 		return
 	SettingsManager.set_tool_inputs(TOOL, {

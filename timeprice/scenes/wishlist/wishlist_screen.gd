@@ -237,7 +237,7 @@ func _build_decisions(profile: UserProfile) -> void:
 		var status_text := Loc.t("передумал") if w.status == WishlistItem.STATUS_DECLINED else Loc.t("куплено")
 		col.add_child(UI.label("%s · %s · %s" % [Fmt.money(w.price_minor, w.currency), status_text, Fmt.date(w.resolved_at)], &"MutedLabel", true))
 		var back := UI.button("Вернуть", &"GhostButton", _resolve.bind(w.id, WishlistItem.STATUS_ACTIVE))
-		back.custom_minimum_size = Vector2(0, 40)
+		back.custom_minimum_size = Vector2(0, 44)
 		row.add_child(back)
 
 

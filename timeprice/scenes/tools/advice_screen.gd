@@ -56,14 +56,14 @@ func _build_content() -> void:
 	var all := UI.button("Все", &"ChipButton", func() -> void: _set_category(""))
 	all.toggle_mode = true
 	all.button_pressed = _category.is_empty()
-	all.custom_minimum_size.y = 36
+	all.custom_minimum_size.y = 44
 	chips.add_child(all)
 	for key in Tips.CATEGORY_ORDER:
 		var k: String = key
 		var chip := UI.button(Tips.category_name(k), &"ChipButton", func() -> void: _set_category(k))
 		chip.toggle_mode = true
 		chip.button_pressed = _category == k
-		chip.custom_minimum_size.y = 36
+		chip.custom_minimum_size.y = 44
 		chips.add_child(chip)
 	for key in Tips.CATEGORY_ORDER:
 		if not _category.is_empty() and key != _category:

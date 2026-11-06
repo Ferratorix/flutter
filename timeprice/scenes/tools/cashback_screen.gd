@@ -62,6 +62,11 @@ func on_enter(_params: Dictionary) -> void:
 
 
 func _exit_tree() -> void:
+	save_state()
+
+
+## Сохраняет последние введённые значения (при уходе с экрана и при сворачивании).
+func save_state() -> void:
 	if _cap == null:
 		return
 	var values := {"cap": FormKit.stored_value(_cap), "fee": FormKit.stored_value(_fee)}

@@ -105,7 +105,19 @@ func _build() -> void:
 	data_box.add_child(privacy)
 	privacy.add_child(UI.icon_badge("shield", 36.0))
 	privacy.add_child(UI.label("Все данные хранятся только на этом устройстве и никуда не передаются.", &"CaptionLabel", true))
+	data_box.add_child(UI.separator())
+	data_box.add_child(UI.label("Резервная копия", &"ValueLabel"))
+	data_box.add_child(UI.label("Сохраните копию в файл — в «Загрузки», на Google Диск или в другое место — и восстановите её на новом телефоне или после переустановки. Файл не зашифрован: храните его в надёжном месте и не пересылайте посторонним.", &"CaptionLabel", true))
+	data_box.add_child(UI.button("Сохранить копию в файл", &"SecondaryButton", _export_backup))
+	data_box.add_child(UI.button("Восстановить из файла", &"SecondaryButton", _pick_import))
+	data_box.add_child(UI.separator())
 	data_box.add_child(UI.button("Удалить все данные", &"DangerButton", _confirm_reset))
+
+	content.add_child(UI.spacer(4))
+	content.add_child(UI.label("О ПРИЛОЖЕНИИ", &"SectionLabel"))
+	var about_box := UI.card(content, &"Card", 10)
+	about_box.add_child(UI.button("Конфиденциальность и о приложении", &"SecondaryButton",
+		func() -> void: NavigationManager.push("about")))
 
 	var version := str(ProjectSettings.get_setting("application/config/version", ""))
 	var about := UI.label(Loc.tf("TIMEPRICE, версия %s", [version]), &"MutedLabel")
@@ -170,6 +182,60 @@ func _save() -> void:
 		_draft = DataManager.profile.copy()
 		_save_button.disabled = true
 		NavigationManager.show_toast(Loc.t("Изменения сохранены"))
+
+
+# --- Резервная копия --------------------------------------------------------
+
+func _export_backup() -> void:
+	var backup := BackupService.compose(DataManager.snapshot(), SettingsManager.export_dict(),
+		str(ProjectSettings.get_setting("application/config/version", "")), DataUtil.now())
+	FilePicker.save_file(self, Loc.t("Сохранить резервную копию"), BackupService.default_file_name(DataUtil.now()),
+		func(path: String) -> void: _write_backup(path, BackupService.to_text(backup)))
+
+
+func _write_backup(path: String, text: String) -> void:
+	if FilePicker.write_text(path, text) == OK:
+		NavigationManager.show_toast(Loc.t("Резервная копия сохранена"))
+	else:
+		NavigationManager.show_toast(Loc.t("Не удалось сохранить файл. Выберите другое место."))
+
+
+func _pick_import() -> void:
+	FilePicker.open_file(self, Loc.t("Выберите файл резервной копии"), _read_import)
+
+
+func _read_import(path: String) -> void:
+	var file := FilePicker.read_text(path)
+	if file["too_large"]:
+		NavigationManager.show_toast(BackupService.error_message(BackupService.ERROR_TOO_LARGE))
+		return
+	if not file["ok"]:
+		NavigationManager.show_toast(Loc.t("Не удалось открыть файл."))
+		return
+	var parsed := BackupService.parse(file["text"], DataManager.SCHEMA_VERSION)
+	if not parsed["ok"]:
+		NavigationManager.show_toast(BackupService.error_message(parsed["error"]))
+		return
+	var summary: Dictionary = parsed["summary"]
+	var details := Loc.tf("Копия от %s: профиль — %s, целей — %d, желаний — %d, расчётов — %d.", [
+		Fmt.date_time(summary["created_at"]) if int(summary["created_at"]) > 0 else Loc.t("неизвестной даты"),
+		Loc.t("есть") if summary["has_profile"] else Loc.t("нет"),
+		summary["goals"], summary["wishlist"], summary["history"]])
+	NavigationManager.confirm("Восстановить данные?",
+		details + " " + Loc.t("Текущие данные будут заменены. Перед заменой они сохранятся в отдельный файл на устройстве."),
+		"Восстановить", _apply_import.bind(parsed), true)
+
+
+func _apply_import(parsed: Dictionary) -> void:
+	if not DataManager.restore_snapshot(parsed["data"]):
+		NavigationManager.show_toast(Loc.t("Не удалось восстановить данные. Текущие данные не изменены."))
+		return
+	SettingsManager.import_dict(parsed["settings"])
+	NavigationManager.show_toast(Loc.t("Данные восстановлены"))
+	if DataManager.has_ready_profile():
+		NavigationManager.reset_to("home")
+	else:
+		NavigationManager.reset_to("onboarding")
 
 
 func _confirm_reset() -> void:

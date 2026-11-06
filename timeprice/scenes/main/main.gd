@@ -81,6 +81,12 @@ func _process(_delta: float) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		_handle_back()
+	elif what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST \
+			or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		# Основные данные сохраняются сразу при изменении; здесь — черновики экранов.
+		for screen in _screens:
+			if is_instance_valid(screen):
+				screen.save_state()
 
 
 func _unhandled_input(event: InputEvent) -> void:

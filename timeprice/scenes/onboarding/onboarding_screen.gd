@@ -147,7 +147,7 @@ func _step_header(step_title: String, text: String) -> void:
 # --- Шаги -------------------------------------------------------------------
 
 func _build_welcome() -> void:
-	_body.add_child(UI.spacer(56))
+	_body.add_child(UI.spacer(16))
 	var badge := UI.icon_badge("clock", 88.0)
 	badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_body.add_child(badge)
@@ -162,7 +162,7 @@ func _build_welcome() -> void:
 	var subtitle := UI.label("Узнай, сколько на самом деле стоят твои покупки", &"BodySecondaryLabel", true)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_body.add_child(subtitle)
-	_body.add_child(UI.spacer(20))
+	_body.add_child(UI.spacer(8))
 	var box := UI.card(_body, &"Card", 14)
 	_feature_row(box, "clock", "Стоимость покупок в рабочих часах и днях")
 	_feature_row(box, "calculator", "Быстрый расчёт без регистрации")
@@ -171,6 +171,10 @@ func _build_welcome() -> void:
 	var slogan := UI.label("Твои деньги. Твоё время. Твой выбор.", &"MutedLabel", true)
 	slogan.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_body.add_child(slogan)
+	var privacy := UI.button("Политика конфиденциальности", &"GhostButton", func() -> void: NavigationManager.push("about"))
+	privacy.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	privacy.custom_minimum_size.y = 44
+	_body.add_child(privacy)
 
 
 func _feature_row(parent: Control, icon_name: String, text: String) -> void:
@@ -232,7 +236,7 @@ func _build_days() -> void:
 	for preset in [20, 22, 26]:
 		var chip := UI.button(str(preset), &"ChipButton")
 		chip.toggle_mode = true
-		chip.custom_minimum_size = Vector2(64, 40)
+		chip.custom_minimum_size = Vector2(64, 44)
 		chip.set_meta("value", preset)
 		chip.pressed.connect(func() -> void: _days_stepper.set_value(preset))
 		chips.add_child(chip)

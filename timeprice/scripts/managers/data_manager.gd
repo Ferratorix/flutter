@@ -60,7 +60,8 @@ func load_data() -> void:
 		load_message = "Не удалось прочитать сохранённые данные. Приложение запущено заново, повреждённый файл сохранён отдельно."
 
 
-func save() -> bool:
+## Полный снимок данных в формате файла хранения.
+func snapshot() -> Dictionary:
 	var items: Array = []
 	for item in history:
 		items.append(item.to_dict())
@@ -79,7 +80,11 @@ func save() -> bool:
 		"goals": goal_items,
 		"wishlist": wish_items,
 	}
-	var err := JsonStorage.write_atomic(DATA_PATH, data, BACKUP_PATH)
+	return data
+
+
+func save() -> bool:
+	var err := JsonStorage.write_atomic(DATA_PATH, snapshot(), BACKUP_PATH)
 	if err != OK:
 		push_error("Не удалось сохранить данные: %s" % error_string(err))
 		save_failed.emit()
@@ -292,10 +297,30 @@ func _commit_wishlist() -> bool:
 	return ok
 
 
+# --- Восстановление из резервной копии ---------------------------------------
+
+const PRE_IMPORT_PATH := "user://timeprice_data.before_import.json"
+
+
+## Заменяет данные снимком из резервной копии. Перед заменой текущие данные
+## сохраняются в отдельный файл на устройстве, чтобы их можно было вернуть вручную.
+func restore_snapshot(data: Dictionary) -> bool:
+	if JsonStorage.write_atomic(PRE_IMPORT_PATH, snapshot()) != OK:
+		return false
+	_apply(data)
+	var ok := save()
+	profile_changed.emit()
+	history_changed.emit()
+	goals_changed.emit()
+	wishlist_changed.emit()
+	return ok
+
+
 # --- Сброс -----------------------------------------------------------------
 
 ## Полное удаление данных пользователя с устройства.
 func reset_all() -> bool:
+	JsonStorage.remove(PRE_IMPORT_PATH)
 	JsonStorage.remove(BACKUP_PATH)
 	JsonStorage.remove(DATA_PATH)
 	profile = UserProfile.new()

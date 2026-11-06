@@ -44,7 +44,7 @@ func on_enter(_params: Dictionary) -> void:
 	for p in PRESETS:
 		var preset: Array = p
 		var chip := UI.button(preset[0], &"ChipButton", func() -> void: _apply_preset(preset))
-		chip.custom_minimum_size.y = 36
+		chip.custom_minimum_size.y = 44
 		presets.add_child(chip)
 
 	var form := UI.card(content, &"Card", 14)
@@ -102,6 +102,11 @@ func _apply_preset(preset: Array) -> void:
 
 
 func _exit_tree() -> void:
+	save_state()
+
+
+## Сохраняет последние введённые значения (при уходе с экрана и при сворачивании).
+func save_state() -> void:
 	if _cost == null:
 		return
 	SettingsManager.set_tool_inputs(TOOL, {
