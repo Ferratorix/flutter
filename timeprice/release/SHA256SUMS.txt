@@ -1,0 +1,2 @@
+37b717c8dc75fc71afce20b8396367d45b5fda79dd66f165333dc6111f469b45  timeprice-1.0.0-unsigned.aab
+92468585945228d9b20c9c571317ad4ffcaa5ebc43d58c79df1812edac6a80d8  timeprice-1.0.0-release-TEST-debugkey.apk
