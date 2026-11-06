@@ -53,6 +53,12 @@ static func texture(icon_name: String) -> Texture2D:
 	return tex
 
 
+## Освобождает кэш до остановки графической подсистемы (иначе Godot сообщает
+## об «утёкших» текстурах при выходе).
+static func clear_cache() -> void:
+	_cache.clear()
+
+
 ## TextureRect с иконкой заданного размера и цвета.
 static func rect(icon_name: String, size: float = 24.0, color: Color = AppTheme.TEXT) -> TextureRect:
 	var r := TextureRect.new()

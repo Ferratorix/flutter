@@ -3,13 +3,13 @@
 **Твои деньги. Твоё время. Твой выбор.**
 
 TIMEPRICE — офлайн-приложение для Android, которое переводит стоимость покупок
-в рабочее время: часы и рабочие дни. Сделано на Godot 4.x (GDScript, Control-узлы).
+в рабочее время: часы и рабочие дни. Сделано на Godot **4.7.2** (GDScript, Control-узлы). Android: targetSdk 36, minSdk 24.
 
 Приложение не оценивает покупки. Оно показывает объективные цифры, чтобы
 решение принимал сам пользователь. Без регистрации, рекламы, внешних API и
 банковских интеграций. Все данные хранятся только на устройстве.
 
-## Статус: версия 0.3.0
+## Статус: версия 1.0.0 (подготовка к Google Play)
 
 | Функция | Статус |
 |---|---|
@@ -82,7 +82,7 @@ tests/           тесты без сторонних плагинов
 
 ## Запуск
 
-1. Установите Godot 4.3 или новее (стандартная сборка, не .NET).
+1. Установите Godot 4.7.2 (стандартная сборка, не .NET).
 2. Откройте `timeprice/project.godot` в редакторе. Первое открытие импортирует
    ресурсы и построит кэш классов `class_name`.
 3. Нажмите F5. Окно 400×860 имитирует телефон, Esc работает как «Назад».
@@ -106,19 +106,24 @@ godot --headless --path timeprice --script res://tests/test_runner.gd
 godot --path timeprice --resolution 800x1720 res://tests/ui_smoke/ui_smoke.tscn
 ```
 
-Проверено в Godot 4.3: 105 модульных тестов и сквозная проверка — без ошибок.
+Проверено в Godot 4.7.2: 111 модульных тестов и сквозная проверка — без ошибок.
 
-## Android-сборка
+## Android-сборка и публикация
 
-1. В редакторе: «Редактор → Настройки редактора → Экспорт → Android» — укажите
-   Android SDK и Java SDK (JDK 17). Debug keystore создаётся автоматически.
-2. «Редактор → Управление шаблонами экспорта» — скачайте шаблоны для своей версии Godot.
-3. «Проект → Экспорт → Android» (пресет уже настроен: `kz.timeprice.app`, портретная
-   ориентация, arm64-v8a и armeabi-v7a, без разрешений, тесты исключены).
-4. Сборка из командной строки:
-   ```bash
-   godot --headless --path timeprice --export-debug "Android" build/android/timeprice-debug.apk
-   adb install -r timeprice/build/android/timeprice-debug.apk
-   ```
-5. Для Google Play нужны релизный keystore (`keystore/release*` в пресете) и формат AAB
-   (`gradle_build/use_gradle_build=true`, `gradle_build/export_format=1`).
+Пресеты экспорта: `Android` (debug APK), `Android Release AAB` (для Google Play) и
+`Android Release APK` (проверка релиза на телефоне). Ключ подписи передаётся только через
+переменные окружения — см. **`RELEASE_BUILD.md`**.
+
+Документы для публикации:
+
+| Документ | Содержание |
+|---|---|
+| `PRE_RELEASE_AUDIT.md` | аудит и статус исправлений |
+| `CHANGELOG_PRE_RELEASE.md` | что изменено перед релизом |
+| `RELEASE_BUILD.md` | ключ загрузки, сборка и проверка AAB |
+| `RELEASE_TEST_PLAN.md` | выполненные автотесты и ручные проверки на устройстве |
+| `GOOGLE_PLAY_CONSOLE_CHECKLIST.md` | шаги в Play Console, закрытое тестирование |
+| `PRIVACY_POLICY.md`, `docs/privacy/index.html` | политика конфиденциальности |
+| `DATA_SAFETY_GUIDE.md`, `PERMISSIONS_AUDIT.md`, `FINANCIAL_FEATURES_DECLARATION.md` | формы App content |
+| `KAZAKHSTAN_COMPLIANCE.md`, `MONETIZATION_RECOMMENDATIONS.md` | правовые вопросы и монетизация |
+| `google_play_assets/` | тексты страницы, скриншоты, значок, Feature Graphic, IARC, App access |

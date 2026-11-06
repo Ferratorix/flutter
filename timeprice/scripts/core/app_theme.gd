@@ -55,6 +55,13 @@ static func get_theme() -> Theme:
 	return _theme
 
 
+## Освобождает тему и шрифты при выходе (до остановки графической подсистемы).
+static func release() -> void:
+	_theme = null
+	_regular = null
+	_bold = null
+
+
 static func bold_font() -> Font:
 	if _bold == null:
 		_bold = _system_font(650)

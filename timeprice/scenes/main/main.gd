@@ -78,6 +78,14 @@ func _process(_delta: float) -> void:
 		_ensure_focus_visible()
 
 
+func _exit_tree() -> void:
+	theme = null
+	if get_tree() != null and get_tree().root != null:
+		get_tree().root.theme = null
+	IconLibrary.clear_cache()
+	AppTheme.release()
+
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		_handle_back()

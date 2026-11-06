@@ -6,3 +6,10 @@ build/
 *.apk
 *.aab
 *.tmp
+
+# Ключи подписи и пароли — никогда не коммитить
+*.jks
+*.keystore
+*.p12
+*.pem
+keystore.properties
